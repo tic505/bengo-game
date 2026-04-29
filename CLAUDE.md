@@ -17,7 +17,14 @@ Open the file directly in a browser. On Windows: `start "" "bengo.html"` or `sta
 
 ## Git workflow
 
-After every meaningful change: commit with a clean message and push to `https://github.com/tic505/bengo-game`. Always keep local and remote in sync.
+**This is mandatory, not optional.** After every meaningful change — new feature, bug fix, visual update, level tweak — commit and push immediately. Never accumulate multiple unrelated changes in one commit.
+
+- Remote: `https://github.com/tic505/bengo-game`
+- Always `git push` after every commit so the remote is never behind
+- Commit messages: short imperative subject line, body if needed to explain why
+- One concern per commit — a level layout change and a drawing change are two separate commits
+
+This ensures any version can be recovered from GitHub history at any time.
 
 ## Bengo architecture
 
