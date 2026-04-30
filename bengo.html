@@ -7,8 +7,9 @@
   <style>
     body { margin: 0; background: #3a003a; color: #eaf2ff; font-family: Arial, sans-serif; display: grid; place-items: center; min-height: 100vh; }
     #wrap { text-align: center; position: relative; width: 100%; max-width: 960px; }
-    canvas { border: 2px solid #6aa7ff; background: #87ceeb; image-rendering: pixelated; width: 100%; aspect-ratio: 960 / 540; display: block; }
+    canvas { border: 2px solid #6aa7ff; background: #87ceeb; image-rendering: pixelated; width: min(100%, calc(100vh * 960 / 540)); aspect-ratio: 960 / 540; display: block; margin: 0 auto; }
     .hint { margin-top: 8px; color: #b7c6e9; font-size: clamp(11px, 2.5vw, 14px); }
+    @media (orientation: landscape) and (max-height: 500px) { .hint { display: none; } }
 
     #touch-ui {
       position: absolute;

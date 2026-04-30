@@ -20,11 +20,11 @@
   canvas {
     border-radius: 8px;
     box-shadow: 0 8px 32px rgba(0,0,0,0.6);
-    width: 100%;
+    width: min(100%, calc(100vh * 800 / 500));
     max-width: 800px;
     aspect-ratio: 800 / 500;
-    height: auto;
     display: block;
+    margin: 0 auto;
   }
   h1 { color: #e0d5c0; font-size: clamp(13px, 4vw, 20px); margin-bottom: 14px; letter-spacing: 4px; text-transform: uppercase; }
   p { color: #806a50; font-size: clamp(11px, 3vw, 13px); margin-top: 10px; letter-spacing: 2px; }
