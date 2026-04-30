@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Razanac, Croatia</title>
+<style>
+  body {
+    margin: 0;
+    padding: 16px;
+    box-sizing: border-box;
+    background: #1a1a2e;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    font-family: Georgia, serif;
+  }
+  canvas {
+    border-radius: 8px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.6);
+    width: 100%;
+    max-width: 800px;
+    aspect-ratio: 800 / 500;
+    height: auto;
+    display: block;
+  }
+  h1 { color: #e0d5c0; font-size: clamp(13px, 4vw, 20px); margin-bottom: 14px; letter-spacing: 4px; text-transform: uppercase; }
+  p { color: #806a50; font-size: clamp(11px, 3vw, 13px); margin-top: 10px; letter-spacing: 2px; }
+</style>
+</head>
+<body>
+<h1>Ražanac, Hrvatska</h1>
+<canvas id="c" width="800" height="500"></canvas>
+<p>Dalmatia &middot; Zadar County &middot; Croatia</p>
+<script>
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+const W = canvas.width, H = canvas.height;
+
+// Sky
+const sky = ctx.createLinearGradient(0, 0, 0, H * 0.55);
+sky.addColorStop(0, '#2e6eb5');
+sky.addColorStop(0.5, '#5aaae0');
+sky.addColorStop(1, '#b8dff5');
+ctx.fillStyle = sky;
+ctx.fillRect(0, 0, W, H * 0.56);
+
+// Sun
+ctx.save();
+ctx.beginPath();
+ctx.arc(680, 58, 36, 0, Math.PI * 2);
+ctx.fillStyle = '#ffe566';
+ctx.shadowColor = '#ffcc00';
+ctx.shadowBlur = 50;
+ctx.fill();
+ctx.restore();
+
+// Clouds
+function cloud(x, y, s) {
+  ctx.save();
+  ctx.fillStyle = 'rgba(255,255,255,0.88)';
+  [[0,0,28],[-22,8,20],[26,6,22],[-8,-12,18],[14,-10,16]].forEach(([dx,dy,r]) => {
+    ctx.beginPath();
+    ctx.arc(x + dx*s, y + dy*s, r*s, 0, Math.PI*2);
+    ctx.fill();
+  });
+  ctx.restore();
+}
+cloud(110, 68, 1.1);
+cloud(310, 48, 0.85);
+cloud(500, 85, 0.7);
+
+// Far mountains (misty blue)
+function mountain(x, y, w, h, col) {
+  ctx.beginPath();
+  ctx.moveTo(x, y+h);
+  ctx.lineTo(x+w/2, y);
+  ctx.lineTo(x+w, y+h);
+  ctx.closePath();
+  ctx.fillStyle = col;
+  ctx.fill();
+}
+mountain(-20, 145, 280, 135, '#7aa5be');
+mountain(200, 138, 260, 145, '#6e9ab5');
+mountain(400, 150, 240, 130, '#80afc0');
+mountain(590, 142, 280, 140, '#74a2ba');
+
+// Closer hills (green-grey)
+function hill(x, y, rx, ry, col) {
+  ctx.beginPath();
+  ctx.ellipse(x, y, rx, ry, 0, Math.PI, 0);
+  ctx.fillStyle = col;
+  ctx.fill();
+}
+hill(80,  295, 175, 62, '#4e7040');
+hill(290, 288, 210, 72, '#486838');
+hill(540, 296, 225, 68, '#4c7242');
+hill(770, 290, 170, 58, '#486038');
+
+// Sea
+const sea = ctx.createLinearGradient(0, H*0.56, 0, H);
+sea.addColorStop(0, '#1a7ac0');
+sea.addColorStop(0.5, '#1560a0');
+sea.addColorStop(1, '#0a3e70');
+ctx.fillStyle = sea;
+ctx.fillRect(0, H*0.56, W, H*0.44);
+
+// Sea shimmer
+ctx.save();
+ctx.strokeStyle = 'rgba(255,255,255,0.13)';
+ctx.lineWidth = 1.5;
+for (let i = 0; i < 14; i++) {
+  const y = H*0.58 + i*16;
+  ctx.beginPath(); ctx.moveTo(20+i*4, y);   ctx.lineTo(180+i*7, y);   ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(320-i*2, y+3); ctx.lineTo(530+i*5, y+3); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(580, y+1);     ctx.lineTo(770+i*2, y+1); ctx.stroke();
+}
+ctx.restore();
+
+// Shore ground
+ctx.fillStyle = '#c4b490';
+ctx.fillRect(0, H*0.553, W, 28);
+
+// Shore rocks
+function rock(x, y, w, h) {
+  ctx.beginPath(); ctx.ellipse(x, y, w, h, 0, 0, Math.PI*2);
+  ctx.fillStyle = '#9a8868'; ctx.fill();
+  ctx.beginPath(); ctx.ellipse(x-w*0.2, y-h*0.3, w*0.55, h*0.38, 0, 0, Math.PI*2);
+  ctx.fillStyle = '#b4a07a'; ctx.fill();
+}
+rock(38, H*0.564, 26, 10);
+rock(148, H*0.567, 19, 7);
+rock(695, H*0.560, 30, 11);
+rock(758, H*0.569, 17, 7);
+
+// Stone house helper
+function house(x, y, w, h, roofH, roofCol, wallCol, win, door) {
+  ctx.fillStyle = wallCol;
+  ctx.fillRect(x, y, w, h);
+  // stone lines
+  ctx.strokeStyle = 'rgba(0,0,0,0.09)';
+  ctx.lineWidth = 0.7;
+  for (let r = 0; r < 5; r++) for (let c = 0; c < 3; c++)
+    ctx.strokeRect(x + c*(w/3)+(r%2)*3, y + r*(h/5), w/3, h/5);
+  // roof
+  ctx.beginPath();
+  ctx.moveTo(x-5, y); ctx.lineTo(x+w/2, y-roofH); ctx.lineTo(x+w+5, y);
+  ctx.closePath();
+  ctx.fillStyle = roofCol; ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo(x-5, y); ctx.lineTo(x+w/2, y-roofH);
+  ctx.strokeStyle = 'rgba(0,0,0,0.22)'; ctx.lineWidth = 1.5; ctx.stroke();
+  // window
+  if (win) {
+    ctx.fillStyle = '#b8dff0';
+    ctx.fillRect(x+w*0.58, y+h*0.22, w*0.24, h*0.28);
+    ctx.strokeStyle = '#887060'; ctx.lineWidth = 1.5;
+    ctx.strokeRect(x+w*0.58, y+h*0.22, w*0.24, h*0.28);
+    ctx.fillStyle = '#3a6e1a';
+    ctx.fillRect(x+w*0.55, y+h*0.22, w*0.06, h*0.28);
+    ctx.fillRect(x+w*0.82, y+h*0.22, w*0.06, h*0.28);
+  }
+  // door
+  if (door) {
+    ctx.fillStyle = '#4a3010';
+    ctx.fillRect(x+w*0.14, y+h*0.58, w*0.28, h*0.42);
+    ctx.beginPath();
+    ctx.arc(x+w*0.14+(w*0.28)/2, y+h*0.58, (w*0.28)/2, Math.PI, 0);
+    ctx.fill();
+    // door knob
+    ctx.beginPath(); ctx.arc(x+w*0.14+w*0.28*0.75, y+h*0.78, 2, 0, Math.PI*2);
+    ctx.fillStyle = '#c8a040'; ctx.fill();
+  }
+}
+
+// Church tower
+function church(x, y, w, h) {
+  ctx.fillStyle = '#d4c8b4';
+  ctx.fillRect(x, y, w, h);
+  ctx.strokeStyle = 'rgba(0,0,0,0.09)'; ctx.lineWidth = 0.7;
+  for (let r = 0; r < 9; r++) for (let c = 0; c < 2; c++)
+    ctx.strokeRect(x+c*(w/2), y+r*(h/9), w/2, h/9);
+  // arch opening
+  const bx=x+w*0.18, by=y+h*0.10, bw=w*0.64, bh=h*0.24;
+  ctx.fillStyle = '#18253e';
+  ctx.fillRect(bx, by+bh*0.38, bw, bh*0.62);
+  ctx.beginPath(); ctx.arc(bx+bw/2, by+bh*0.38, bw/2, Math.PI, 0); ctx.fill();
+  // bell silhouette
+  ctx.fillStyle = '#302010';
+  ctx.beginPath(); ctx.arc(bx+bw/2, by+bh*0.55, 7, 0, Math.PI*2); ctx.fill();
+  // pyramid roof
+  ctx.beginPath();
+  ctx.moveTo(x-6, y); ctx.lineTo(x+w/2, y-34); ctx.lineTo(x+w+6, y);
+  ctx.closePath();
+  ctx.fillStyle = '#b03828'; ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo(x-6, y); ctx.lineTo(x+w/2, y-34);
+  ctx.strokeStyle = 'rgba(0,0,0,0.25)'; ctx.lineWidth = 1.5; ctx.stroke();
+  // cross
+  ctx.fillStyle = '#d4a840';
+  ctx.fillRect(x+w/2-2, y-58, 4, 24);
+  ctx.fillRect(x+w/2-10, y-50, 20, 4);
+}
+
+// Cypress tree
+function cypress(x, y, h) {
+  ctx.save();
+  const g = ctx.createLinearGradient(x-h*0.18, 0, x+h*0.18, 0);
+  g.addColorStop(0, '#264e14'); g.addColorStop(0.5, '#357020'); g.addColorStop(1, '#224412');
+  ctx.fillStyle = g;
+  ctx.beginPath(); ctx.moveTo(x, y-h); ctx.lineTo(x-h*0.18, y); ctx.lineTo(x+h*0.18, y); ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle = '#4a3010'; ctx.fillRect(x-3, y, 6, 12);
+  ctx.restore();
+}
+
+// Olive tree
+function olive(x, y, r) {
+  ctx.save();
+  ctx.fillStyle = '#6a5028'; ctx.fillRect(x-4, y, 8, 18);
+  [[-10,-r*0.8],[10,-r*0.9],[0,-r*1.1],[-12,-r*0.5],[12,-r*0.5]].forEach(([dx,dy]) => {
+    ctx.beginPath(); ctx.arc(x+dx, y+dy, r*0.52, 0, Math.PI*2);
+    ctx.fillStyle = '#587a2a'; ctx.fill();
+    ctx.beginPath(); ctx.arc(x+dx-2, y+dy-3, r*0.28, 0, Math.PI*2);
+    ctx.fillStyle = '#6a9030'; ctx.fill();
+  });
+  ctx.restore();
+}
+
+// Background houses
+house(45,  264, 52, 54, 21, '#b84e2a', '#d0c4a8', false, false);
+house(104, 270, 46, 48, 19, '#b04020', '#c8bca0', false, false);
+house(574, 262, 50, 54, 22, '#be5830', '#cec2a6', false, false);
+house(633, 267, 42, 50, 18, '#b03c22', '#c8bca2', false, false);
+house(688, 260, 58, 56, 24, '#c25e3c', '#d0c4aa', false, false);
+
+// Church (center)
+church(352, 192, 54, 114);
+
+// Main foreground houses
+house(162, 268, 82, 82, 33, '#be5830', '#d4c8b2', true, true);
+house(252, 263, 72, 87, 31, '#b44028', '#cec2aa', true, true);
+house(425, 266, 76, 82, 31, '#be5e3c', '#d2c6b0', true, true);
+house(508, 260, 66, 86, 28, '#b63c2c', '#ccc0a6', true, false);
+
+// Perimeter wall
+ctx.fillStyle = '#beb09a';
+ctx.fillRect(0, H*0.537, W, 14);
+ctx.fillStyle = '#a89880';
+ctx.fillRect(0, H*0.532, W, 6);
+
+// Path down to water
+ctx.fillStyle = '#bea882';
+for (let i = 0; i < 7; i++)
+  ctx.fillRect(368+i*3, H*0.547+i*5, 62-i*7, 5);
+
+// Trees
+cypress(140, 294, 66);
+cypress(408, 286, 72);
+cypress(676, 290, 60);
+olive(218, 296, 18);
+olive(550, 293, 16);
+
+// Boats
+function boat(x, y, s) {
+  ctx.save(); ctx.translate(x, y); ctx.scale(s, s);
+  ctx.beginPath();
+  ctx.moveTo(-30, 0); ctx.lineTo(-24, 12); ctx.lineTo(24, 12); ctx.lineTo(30, 0);
+  ctx.closePath();
+  ctx.fillStyle = '#e4cc98'; ctx.fill();
+  ctx.strokeStyle = '#987850'; ctx.lineWidth = 1.5; ctx.stroke();
+  // mast
+  ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, -40);
+  ctx.strokeStyle = '#705028'; ctx.lineWidth = 2; ctx.stroke();
+  // sail
+  ctx.beginPath(); ctx.moveTo(0, -38); ctx.lineTo(24, -14); ctx.lineTo(0, -6); ctx.closePath();
+  ctx.fillStyle = 'rgba(255,252,235,0.92)'; ctx.fill();
+  ctx.restore();
+}
+boat(95,  422, 0.92);
+boat(648, 442, 0.76);
+
+// Water reflections
+ctx.save();
+ctx.globalAlpha = 0.16;
+ctx.fillStyle = '#c05a30';
+ctx.fillRect(160, H*0.572, 390, 16);
+ctx.globalAlpha = 0.10;
+ctx.fillStyle = '#d4c8b2';
+ctx.fillRect(100, H*0.585, 480, 11);
+ctx.restore();
+
+// Seagulls
+function gull(x, y, s) {
+  ctx.save(); ctx.strokeStyle = 'rgba(20,25,50,0.65)'; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(x-s, y); ctx.quadraticCurveTo(x, y-s*0.7, x+s, y); ctx.stroke();
+  ctx.restore();
+}
+gull(195, 128, 10); gull(213, 122, 8); gull(438, 108, 9); gull(576, 138, 7);
+
+// Name plaque
+ctx.save();
+ctx.fillStyle = 'rgba(10,8,4,0.35)';
+ctx.beginPath();
+if (ctx.roundRect) ctx.roundRect(W/2-118, H-52, 236, 40, 6);
+else ctx.rect(W/2-118, H-52, 236, 40);
+ctx.fill();
+ctx.fillStyle = '#f0e8d0';
+ctx.font = 'bold 17px Georgia, serif';
+ctx.textAlign = 'center';
+ctx.shadowColor = 'rgba(0,0,0,0.6)';
+ctx.shadowBlur = 5;
+ctx.fillText('RAŽANAC · DALMACIJA', W/2, H-27);
+ctx.restore();
+
+// Vignette
+const vig = ctx.createRadialGradient(W/2, H/2, H*0.28, W/2, H/2, H*0.78);
+vig.addColorStop(0, 'rgba(0,0,0,0)');
+vig.addColorStop(1, 'rgba(0,0,20,0.38)');
+ctx.fillStyle = vig;
+ctx.fillRect(0, 0, W, H);
+</script>
+</body>
+</html>

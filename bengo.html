@@ -6,14 +6,66 @@
   <title>Bengo - FLAT-ARENA TEST</title>
   <style>
     body { margin: 0; background: #3a003a; color: #eaf2ff; font-family: Arial, sans-serif; display: grid; place-items: center; min-height: 100vh; }
-    #wrap { text-align: center; }
-    canvas { border: 2px solid #6aa7ff; background: #87ceeb; image-rendering: pixelated; }
-    .hint { margin-top: 8px; color: #b7c6e9; font-size: 14px; }
+    #wrap { text-align: center; position: relative; width: 100%; max-width: 960px; }
+    canvas { border: 2px solid #6aa7ff; background: #87ceeb; image-rendering: pixelated; width: 100%; aspect-ratio: 960 / 540; display: block; }
+    .hint { margin-top: 8px; color: #b7c6e9; font-size: clamp(11px, 2.5vw, 14px); }
+
+    #touch-ui {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      padding: 0 8px 10px;
+      pointer-events: none;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    @media (hover: hover) and (pointer: fine) { #touch-ui { display: none; } }
+
+    .touch-btn {
+      pointer-events: all;
+      background: rgba(255,255,255,0.12);
+      border: 2px solid rgba(255,255,255,0.35);
+      border-radius: 50%;
+      color: rgba(255,255,255,0.9);
+      font-size: clamp(16px, 4vw, 26px);
+      width: clamp(46px, 12vw, 62px);
+      height: clamp(46px, 12vw, 62px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      touch-action: none;
+      -webkit-tap-highlight-color: transparent;
+      transition: background 0.1s;
+      padding: 0;
+    }
+    .touch-btn:active { background: rgba(255,255,255,0.28); }
+
+    #dpad { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+    #dpad-row { display: flex; gap: 6px; }
+    #action-btns { display: flex; flex-direction: column; gap: 6px; align-items: flex-end; }
   </style>
 </head>
 <body>
   <div id="wrap">
     <canvas id="game" width="960" height="540"></canvas>
+    <div id="touch-ui">
+      <div id="dpad">
+        <button class="touch-btn" id="btn-jump">↑</button>
+        <div id="dpad-row">
+          <button class="touch-btn" id="btn-left">←</button>
+          <button class="touch-btn" id="btn-right">→</button>
+        </div>
+      </div>
+      <div id="action-btns">
+        <button class="touch-btn" id="btn-power" title="Power (needs 100%)">★</button>
+        <button class="touch-btn" id="btn-sword">⚔</button>
+      </div>
+    </div>
     <div class="hint">TEST BUILD: purple page + FLAT ARENA label | Press L for level 4</div>
   </div>
 
@@ -721,7 +773,7 @@
       ctx.fillStyle = "#eaf2ff"; ctx.textAlign = "center";
       ctx.font = "56px Arial"; ctx.fillText(title, W / 2, H / 2 - 30);
       ctx.font = "24px Arial"; ctx.fillText(subtitle, W / 2, H / 2 + 20);
-      ctx.font = "18px Arial"; ctx.fillText("Press Enter", W / 2, H / 2 + 70);
+      ctx.font = "18px Arial"; ctx.fillText("Tap screen or press Enter", W / 2, H / 2 + 70);
       ctx.textAlign = "left";
     }
 
@@ -744,6 +796,33 @@
       }
       requestAnimationFrame(loop);
     }
+
+    // Touch controls
+    function bindBtn(id, key) {
+      const btn = document.getElementById(id);
+      if (!btn) return;
+      btn.addEventListener('touchstart', e => { e.preventDefault(); keys[key] = true; }, { passive: false });
+      btn.addEventListener('touchend',   e => { e.preventDefault(); keys[key] = false; }, { passive: false });
+      btn.addEventListener('touchcancel', () => { keys[key] = false; });
+    }
+    bindBtn('btn-left',  'arrowleft');
+    bindBtn('btn-right', 'arrowright');
+    bindBtn('btn-jump',  'arrowup');
+    bindBtn('btn-sword', 'j');
+    bindBtn('btn-power', 'k');
+
+    canvas.addEventListener('touchstart', e => {
+      if (audio.state === 'suspended') audio.resume();
+      if (game.state === 'menu' || game.state === 'gameover' || game.state === 'win') {
+        e.preventDefault();
+        game.state = 'playing';
+        game.level = 0;
+        game.score = 0;
+        player.hp = 3;
+        player.power = 0;
+        loadLevel(0);
+      }
+    }, { passive: false });
 
     window.addEventListener("keydown", (e) => {
       keys[e.key.toLowerCase()] = true;

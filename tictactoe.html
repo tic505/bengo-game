@@ -19,14 +19,14 @@
     }
 
     h1 {
-      font-size: 2.2rem;
+      font-size: clamp(1.4rem, 6vw, 2.2rem);
       margin-bottom: 0.5rem;
       letter-spacing: 2px;
       color: #e94560;
     }
 
     #status {
-      font-size: 1.1rem;
+      font-size: clamp(0.9rem, 3vw, 1.1rem);
       margin-bottom: 1.5rem;
       height: 1.4rem;
       color: #a8dadc;
@@ -34,9 +34,9 @@
 
     #board {
       display: grid;
-      grid-template-columns: repeat(3, 110px);
-      grid-template-rows: repeat(3, 110px);
-      gap: 8px;
+      grid-template-columns: repeat(3, min(110px, 28vw));
+      grid-template-rows: repeat(3, min(110px, 28vw));
+      gap: clamp(4px, 2vw, 8px);
     }
 
     .cell {
@@ -45,11 +45,12 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 3rem;
+      font-size: clamp(1.8rem, 8vw, 3rem);
       font-weight: bold;
       cursor: pointer;
       transition: background 0.15s, transform 0.1s;
       user-select: none;
+      touch-action: manipulation;
     }
 
     .cell:hover:not(.taken) {
