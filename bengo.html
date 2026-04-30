@@ -47,6 +47,7 @@
     .touch-btn:active { background: rgba(255,255,255,0.28); }
 
     #dpad { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+    #dpad-top { display: flex; gap: 6px; }
     #dpad-row { display: flex; gap: 6px; }
     #action-btns { display: flex; flex-direction: column; gap: 6px; align-items: flex-end; }
   </style>
@@ -56,7 +57,11 @@
     <canvas id="game" width="960" height="540"></canvas>
     <div id="touch-ui">
       <div id="dpad">
-        <button class="touch-btn" id="btn-jump">↑</button>
+        <div id="dpad-top">
+          <button class="touch-btn" id="btn-jump-left">↖</button>
+          <button class="touch-btn" id="btn-jump">↑</button>
+          <button class="touch-btn" id="btn-jump-right">↗</button>
+        </div>
         <div id="dpad-row">
           <button class="touch-btn" id="btn-left">←</button>
           <button class="touch-btn" id="btn-right">→</button>
@@ -264,9 +269,9 @@
     }
 
     function playerInput() {
-      const left = keys["a"] || keys["arrowleft"];
-      const right = keys["d"] || keys["arrowright"];
-      const jump = keys["w"] || keys["arrowup"];
+      const left  = keys["a"] || keys["arrowleft"] || keys["q"];
+      const right = keys["d"] || keys["arrowright"] || keys["e"];
+      const jump  = keys["w"] || keys["arrowup"] || keys["q"] || keys["e"];
       player.vx = 0;
       if (left) { player.vx = -player.speed; player.facing = -1; }
       if (right) { player.vx = player.speed; player.facing = 1; }
@@ -806,11 +811,13 @@
       btn.addEventListener('touchend',   e => { e.preventDefault(); keys[key] = false; }, { passive: false });
       btn.addEventListener('touchcancel', () => { keys[key] = false; });
     }
-    bindBtn('btn-left',  'arrowleft');
-    bindBtn('btn-right', 'arrowright');
-    bindBtn('btn-jump',  'arrowup');
-    bindBtn('btn-sword', 'j');
-    bindBtn('btn-power', 'k');
+    bindBtn('btn-left',       'arrowleft');
+    bindBtn('btn-right',      'arrowright');
+    bindBtn('btn-jump',       'arrowup');
+    bindBtn('btn-jump-left',  'q');
+    bindBtn('btn-jump-right', 'e');
+    bindBtn('btn-sword',      'j');
+    bindBtn('btn-power',      'k');
 
     canvas.addEventListener('touchstart', e => {
       if (audio.state === 'suspended') audio.resume();
