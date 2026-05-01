@@ -209,8 +209,10 @@
       attacks: [],
       goal: null,
       particles: [],
+      popups: [],
       shake: { mag: 0, dur: 0 },
-      tick: 0
+      tick: 0,
+      hitStop: 0
     };
 
     const player = {
@@ -237,6 +239,8 @@
       game.attacks = [];
       game.goal = null;
       game.particles = [];
+      game.popups = [];
+      game.hitStop = 0;
       const map = LEVELS[index];
       for (let r = 0; r < map.length; r++) {
         for (let c = 0; c < map[r].length; c++) {
@@ -338,6 +342,7 @@
 
       for (const e of game.enemies) {
         if (!e.alive) continue;
+        if (e.dying) { if (--e.deathTimer <= 0) e.alive = false; continue; }
         if (e.hurtCd > 0) e.hurtCd--;
         if (e.powerCd > 0) e.powerCd--;
         if (e.shootCd > 0) e.shootCd--;
@@ -397,6 +402,7 @@
             sfx("hit");
             spawnParticles(e.x + e.w / 2, e.y + e.h / 2, 8, ["#ff4444", "#ff8844", "#ffcc44"], { speed: 5, life: 20 });
             triggerShake(2, 4);
+            game.hitStop = Math.max(game.hitStop, e.type === "boss" ? 3 : 2);
           }
         }
         // Jumping on enemy head does sword-equivalent damage.
@@ -415,6 +421,7 @@
           sfx("hit");
           spawnParticles(e.x + e.w / 2, e.y, 10, ["#ff4444", "#ff8844", "#ffcc44"], { speed: 4, life: 18, upBias: 2 });
           triggerShake(3, 6);
+          game.hitStop = Math.max(game.hitStop, 3);
         }
         if (e.type === "boss" && e.hp <= 20 && !e.powerUsed && e.powerCd <= 0) {
           e.powerUsed = true;
@@ -430,8 +437,9 @@
           flash = 10;
           sfx("saturn");
         }
-        if (e.hp <= 0 && e.alive) {
-          e.alive = false;
+        if (e.hp <= 0 && e.alive && !e.dying) {
+          e.dying = true;
+          e.deathTimer = 18;
           game.score += e.type === "boss" ? 1200 : 100;
           game.kills++;
           player.power = Math.min(100, player.power + (e.type === "boss" ? 40 : 34));
@@ -440,11 +448,13 @@
           const dc = e.type === "boss" ? ["#ffcc00", "#ff6600", "#ff0000", "#ffffff"] : ["#6622aa", "#cc7722", "#ffee44", "#ff9999"];
           spawnParticles(e.x + e.w / 2, e.y + e.h / 2, e.type === "boss" ? 30 : 20, dc, { speed: 6, life: 35, size: e.type === "boss" ? 5 : 4, upBias: 2 });
           if (e.type === "boss") triggerShake(8, 18); else triggerShake(4, 8);
+          game.popups.push({ x: e.x + e.w / 2, y: e.y - 10, text: "+" + (e.type === "boss" ? "1200" : "100"), life: 45, maxLife: 45, color: e.type === "boss" ? "#ffd700" : "#ffffff" });
+          game.hitStop = Math.max(game.hitStop, e.type === "boss" ? 8 : 4);
         }
         if (
           rects(player, e) &&
           player.hurtCd <= 0 &&
-          e.alive &&
+          e.alive && !e.dying &&
           game.spawnGrace <= 0 &&
           game.bossIntro <= 0 &&
           !(player.vy < 0 && player.y + player.h <= e.y + 20)
@@ -456,6 +466,7 @@
           sfx("hurt");
           spawnParticles(player.x + player.w / 2, player.y + player.h / 2, 10, ["#6688ff", "#3355bb", "#ffffff"], { speed: 5, life: 22, upBias: 1 });
           triggerShake(e.type === "boss" ? 5 : 3, e.type === "boss" ? 12 : 7);
+          game.hitStop = Math.max(game.hitStop, e.type === "boss" ? 4 : 2);
           if (player.hp <= 0) game.state = "gameover";
         }
       }
@@ -479,6 +490,7 @@
           sfx("hurt");
           spawnParticles(player.x + player.w / 2, player.y + player.h / 2, 12, ["#6688ff", "#c935ff", "#ffffff"], { speed: 6, life: 25, upBias: 1 });
           triggerShake(5, 10);
+          game.hitStop = Math.max(game.hitStop, 4);
           if (player.hp <= 0) game.state = "gameover";
           return false;
         }
@@ -496,18 +508,25 @@
           if (p.x + p.r > t.x && p.x - p.r < t.x + t.w && p.y + p.r > t.y && p.y - p.r < t.y + t.h) return false;
         }
         for (const e of game.enemies) {
-          if (!e.alive || p.hits.has(e)) continue;
+          if (!e.alive || e.dying || p.hits.has(e)) continue;
           if (p.x + p.r > e.x && p.x - p.r < e.x + e.w && p.y + p.r > e.y && p.y - p.r < e.y + e.h) {
             p.hits.add(e);
             const dmg = (e.type === "boss" && game.level === 3) ? 50 : 100;
             e.hp -= dmg;
-            if (e.hp <= 0) {
-              e.alive = false;
+            if (e.hp <= 0 && !e.dying) {
+              e.dying = true;
+              e.deathTimer = 18;
               game.score += e.type === "boss" ? 1200 : 100;
               game.kills++;
               player.power = Math.min(100, player.power + (e.type === "boss" ? 40 : 34));
               sfx("die");
-            } else sfx("hit");
+              if (player.power === 100) sfx("power");
+              const dc2 = e.type === "boss" ? ["#ffcc00", "#ff6600", "#ff0000", "#ffffff"] : ["#6622aa", "#cc7722", "#ffee44", "#ff9999"];
+              spawnParticles(e.x + e.w / 2, e.y + e.h / 2, e.type === "boss" ? 30 : 20, dc2, { speed: 6, life: 35, size: e.type === "boss" ? 5 : 4, upBias: 2 });
+              if (e.type === "boss") triggerShake(8, 18); else triggerShake(4, 8);
+              game.popups.push({ x: e.x + e.w / 2, y: e.y - 10, text: "+" + (e.type === "boss" ? "1200" : "100"), life: 45, maxLife: 45, color: e.type === "boss" ? "#ffd700" : "#ffffff" });
+              game.hitStop = Math.max(game.hitStop, e.type === "boss" ? 8 : 4);
+            } else if (e.hp > 0) sfx("hit");
           }
         }
         return true;
@@ -525,6 +544,7 @@
         p.life--;
         return p.life > 0;
       });
+      game.popups = game.popups.filter(p => { p.y -= 1; p.life--; return p.life > 0; });
       if (game.shake.dur > 0) { game.shake.dur--; if (game.shake.dur === 0) game.shake.mag = 0; }
     }
 
@@ -832,6 +852,17 @@
 
       for (const e of game.enemies) {
         if (!e.alive) continue;
+        if (e.dying) {
+          const s = e.deathTimer / 18;
+          const cx = Math.round(e.x + e.w / 2), cy = Math.round(e.y + e.h / 2);
+          ctx.save();
+          ctx.globalAlpha = s;
+          ctx.translate(cx, cy); ctx.scale(s, s); ctx.translate(-cx, -cy);
+          if (e.type === "boss") drawBoss(e); else drawGrunt(e);
+          ctx.restore();
+          ctx.globalAlpha = 1;
+          continue;
+        }
         if (e.type === "boss") drawBoss(e); else drawGrunt(e);
       }
 
@@ -876,6 +907,19 @@
         ctx.beginPath(); ctx.arc(p.x, p.y, Math.max(0.5, p.size * (p.life / p.maxLife)), 0, Math.PI * 2); ctx.fill();
       }
       ctx.globalAlpha = 1;
+      // Score popups
+      ctx.textAlign = "center";
+      ctx.font = "bold 18px Arial";
+      for (const p of game.popups) {
+        ctx.globalAlpha = p.life / p.maxLife;
+        ctx.fillStyle = p.color;
+        ctx.strokeStyle = "rgba(0,0,0,0.6)";
+        ctx.lineWidth = 3;
+        ctx.strokeText(p.text, p.x, p.y);
+        ctx.fillText(p.text, p.x, p.y);
+      }
+      ctx.globalAlpha = 1;
+      ctx.textAlign = "left";
       ctx.restore();
 
       ctx.fillStyle = "#00000088"; ctx.fillRect(10, 10, 220, 90);
@@ -915,7 +959,7 @@
 
     function loop() {
       if (game.state === "playing") {
-        updateGame();
+        if (game.hitStop > 0) { game.hitStop--; } else { updateGame(); }
         drawWorld();
       } else if (game.state === "menu") {
         drawScreen("BENGO", "Retro Platformer Adventure");
