@@ -82,6 +82,26 @@
     const keys = {};
     let flash = 0;
 
+    function spawnParticles(x, y, count, colors, opts = {}) {
+      const speed = opts.speed || 4, life = opts.life || 25, size = opts.size || 3;
+      for (let i = 0; i < count; i++) {
+        const a = Math.random() * Math.PI * 2;
+        const spd = speed * (0.4 + Math.random() * 0.8);
+        game.particles.push({
+          x, y,
+          vx: Math.cos(a) * spd,
+          vy: Math.sin(a) * spd - (opts.upBias || 0),
+          life: life + Math.floor(Math.random() * 10),
+          maxLife: life + 10,
+          color: colors[Math.floor(Math.random() * colors.length)],
+          size: size * (0.6 + Math.random() * 0.7)
+        });
+      }
+    }
+    function triggerShake(mag, dur) {
+      if (mag > game.shake.mag) { game.shake.mag = mag; game.shake.dur = dur; }
+    }
+
     const audio = new (window.AudioContext || window.webkitAudioContext)();
     function beep(type, freq, dur, gain = 0.06, endFreq = null) {
       const osc = audio.createOscillator();
@@ -187,7 +207,10 @@
       enemyProjectiles: [],
       projectiles: [],
       attacks: [],
-      goal: null
+      goal: null,
+      particles: [],
+      shake: { mag: 0, dur: 0 },
+      tick: 0
     };
 
     const player = {
@@ -213,6 +236,7 @@
       game.projectiles = [];
       game.attacks = [];
       game.goal = null;
+      game.particles = [];
       const map = LEVELS[index];
       for (let r = 0; r < map.length; r++) {
         for (let c = 0; c < map[r].length; c++) {
@@ -284,18 +308,27 @@
       }
       if ((keys["k"] || keys["x"]) && player.power >= 100) {
         player.power = 0;
-        game.projectiles.push({ x: player.x + player.w / 2, y: player.y + 14, r: 13, vx: player.facing * 10, life: 180, hits: new Set() });
+        game.projectiles.push({ x: player.x + player.w / 2, y: player.y + 14, r: 13, vx: player.facing * 10, life: 180, hits: new Set(), trail: [] });
         flash = 8;
         sfx("saturn");
+        spawnParticles(player.x + player.w / 2, player.y + player.h / 2, 15, ["#ffd700", "#ffaa00", "#ffffff", "#ff6b2c"], { speed: 7, life: 30, size: 5, upBias: 3 });
+        triggerShake(3, 6);
       }
     }
 
     function updateGame() {
+      game.tick++;
       playerInput();
       if (game.spawnGrace > 0) game.spawnGrace--;
       if (game.bossIntro > 0) game.bossIntro--;
       player.vy = Math.min(MAX_FALL, player.vy + GRAVITY);
+      const wasOnGround = player.onGround;
+      const preVy = player.vy;
       moveAndCollide(player);
+      if (!wasOnGround && player.onGround && preVy > 6) {
+        spawnParticles(player.x + player.w / 2, player.y + player.h, 8, ["#8a7555", "#6a5a3a", "#c8b890"], { speed: 3, life: 15, size: 2 });
+        if (preVy > 10) triggerShake(2, 4);
+      }
 
       if (player.attackCd > 0) player.attackCd--;
       if (player.hurtCd > 0) player.hurtCd--;
@@ -362,6 +395,8 @@
             e.vx += player.facing * 4;
             e.hurtCd = 8;
             sfx("hit");
+            spawnParticles(e.x + e.w / 2, e.y + e.h / 2, 8, ["#ff4444", "#ff8844", "#ffcc44"], { speed: 5, life: 20 });
+            triggerShake(2, 4);
           }
         }
         // Jumping on enemy head does sword-equivalent damage.
@@ -378,6 +413,8 @@
           e.hurtCd = 10;
           player.vy = -10.5;
           sfx("hit");
+          spawnParticles(e.x + e.w / 2, e.y, 10, ["#ff4444", "#ff8844", "#ffcc44"], { speed: 4, life: 18, upBias: 2 });
+          triggerShake(3, 6);
         }
         if (e.type === "boss" && e.hp <= 20 && !e.powerUsed && e.powerCd <= 0) {
           e.powerUsed = true;
@@ -400,6 +437,9 @@
           player.power = Math.min(100, player.power + (e.type === "boss" ? 40 : 34));
           sfx("die");
           if (player.power === 100) sfx("power");
+          const dc = e.type === "boss" ? ["#ffcc00", "#ff6600", "#ff0000", "#ffffff"] : ["#6622aa", "#cc7722", "#ffee44", "#ff9999"];
+          spawnParticles(e.x + e.w / 2, e.y + e.h / 2, e.type === "boss" ? 30 : 20, dc, { speed: 6, life: 35, size: e.type === "boss" ? 5 : 4, upBias: 2 });
+          if (e.type === "boss") triggerShake(8, 18); else triggerShake(4, 8);
         }
         if (
           rects(player, e) &&
@@ -414,11 +454,16 @@
           player.vx = -player.facing * 5;
           player.vy = -6;
           sfx("hurt");
+          spawnParticles(player.x + player.w / 2, player.y + player.h / 2, 10, ["#6688ff", "#3355bb", "#ffffff"], { speed: 5, life: 22, upBias: 1 });
+          triggerShake(e.type === "boss" ? 5 : 3, e.type === "boss" ? 12 : 7);
           if (player.hp <= 0) game.state = "gameover";
         }
       }
 
       game.enemyProjectiles = game.enemyProjectiles.filter(p => {
+        if (!p.trail) p.trail = [];
+        p.trail.unshift({ x: p.x, y: p.y });
+        if (p.trail.length > 8) p.trail.pop();
         p.x += p.vx;
         p.y += p.vy;
         p.life--;
@@ -432,6 +477,8 @@
           player.vx = -Math.sign(p.vx || 1) * 6;
           player.vy = -7;
           sfx("hurt");
+          spawnParticles(player.x + player.w / 2, player.y + player.h / 2, 12, ["#6688ff", "#c935ff", "#ffffff"], { speed: 6, life: 25, upBias: 1 });
+          triggerShake(5, 10);
           if (player.hp <= 0) game.state = "gameover";
           return false;
         }
@@ -439,6 +486,9 @@
       });
 
       game.projectiles = game.projectiles.filter(p => {
+        if (!p.trail) p.trail = [];
+        p.trail.unshift({ x: p.x, y: p.y });
+        if (p.trail.length > 8) p.trail.pop();
         p.x += p.vx;
         p.life--;
         if (p.x < 0 || p.x > W || p.life <= 0) return false;
@@ -469,6 +519,13 @@
         if (game.level >= LEVELS.length) game.state = "win";
         else loadLevel(game.level);
       }
+      game.particles = game.particles.filter(p => {
+        p.x += p.vx; p.y += p.vy;
+        p.vy += 0.3; p.vx *= 0.95;
+        p.life--;
+        return p.life > 0;
+      });
+      if (game.shake.dur > 0) { game.shake.dur--; if (game.shake.dur === 0) game.shake.mag = 0; }
     }
 
     function drawPlayer() {
@@ -477,6 +534,11 @@
       const f = player.facing;
       const hurt = player.hurtCd > 0 && player.hurtCd % 6 < 3;
       const atk = player.attackCd > 8;
+      const wL = player.vx !== 0 ? Math.round(Math.sin(game.tick * 0.28) * 5) : 0;
+      const wR = player.vx !== 0 ? Math.round(Math.sin(game.tick * 0.28 + Math.PI) * 5) : 0;
+      // Drop shadow
+      ctx.fillStyle = "rgba(0,0,0,0.22)";
+      ctx.beginPath(); ctx.ellipse(x + 15, y + player.h + 2, 14, 5, 0, 0, Math.PI * 2); ctx.fill();
       const C = {
         helmet: hurt ? "#6688ff" : "#1e3070",
         visor:  hurt ? "#99aaff" : "#3355bb",
@@ -491,17 +553,17 @@
       const bax = f > 0 ? x : x + 22;
       ctx.fillStyle = C.armor; ctx.fillRect(bax, y + 16, 8, 10);
       ctx.fillStyle = C.pants; ctx.fillRect(bax, y + 24, 8, 5);
-      // Legs
+      // Legs (walk animation)
       ctx.fillStyle = C.pants;
-      ctx.fillRect(x + 4, y + 28, 9, 9);
-      ctx.fillRect(x + 17, y + 28, 9, 9);
+      ctx.fillRect(x + 4, y + 28 + wL, 9, 9);
+      ctx.fillRect(x + 17, y + 28 + wR, 9, 9);
       // Boots
       ctx.fillStyle = C.boot;
-      ctx.fillRect(x + 3, y + 34, 11, 8);
-      ctx.fillRect(x + 16, y + 34, 11, 8);
+      ctx.fillRect(x + 3, y + 34 + wL, 11, 8);
+      ctx.fillRect(x + 16, y + 34 + wR, 11, 8);
       ctx.fillStyle = hurt ? "#aa7744" : "#5c3010";
-      ctx.fillRect(x + 3, y + 34, 11, 2);
-      ctx.fillRect(x + 16, y + 34, 11, 2);
+      ctx.fillRect(x + 3, y + 34 + wL, 11, 2);
+      ctx.fillRect(x + 16, y + 34 + wR, 11, 2);
       // Body
       ctx.fillStyle = C.armor; ctx.fillRect(x + 3, y + 15, 24, 14);
       ctx.fillStyle = C.chest; ctx.fillRect(x + 7, y + 16, 16, 11);
@@ -560,6 +622,15 @@
       // Plume
       ctx.fillStyle = "#dd2222"; ctx.fillRect(x + 11, y - 6, 8, 7);
       ctx.fillStyle = "#ff7777"; ctx.fillRect(x + 12, y - 5, 6, 5);
+      // Power glow
+      if (player.power >= 100) {
+        const pulse = 0.3 + Math.sin(game.tick * 0.15) * 0.15;
+        const grd = ctx.createRadialGradient(x + 15, y + 21, 4, x + 15, y + 21, 38);
+        grd.addColorStop(0, `rgba(255,215,0,${pulse.toFixed(2)})`);
+        grd.addColorStop(1, "rgba(255,215,0,0)");
+        ctx.fillStyle = grd;
+        ctx.fillRect(x - 18, y - 12, 66, 75);
+      }
     }
 
     function drawGrunt(e) {
@@ -567,12 +638,16 @@
       const hurt = e.hurtCd > 0;
       const tc1 = hurt ? "#dd99ff" : "#6622aa";
       const tc2 = hurt ? "#cc77ee" : "#441188";
-      // Tentacles
+      // Drop shadow
+      ctx.fillStyle = "rgba(0,0,0,0.22)";
+      ctx.beginPath(); ctx.ellipse(x + 14, y + e.h + 2, 13, 5, 0, 0, Math.PI * 2); ctx.fill();
+      // Tentacles (animated sway)
       for (let i = 0; i < 5; i++) {
         const tx = x + 1 + i * 5;
-        ctx.fillStyle = tc1; ctx.fillRect(tx, y + 22, 4, 10);
-        ctx.fillStyle = tc2; ctx.fillRect(tx + 1, y + 28, 2, 5);
-        ctx.fillStyle = hurt ? "#ffaaff" : "#8833bb"; ctx.fillRect(tx + 1, y + 25, 2, 2);
+        const sw = Math.round(Math.sin(game.tick * 0.12 + i * 0.8) * 3);
+        ctx.fillStyle = tc1; ctx.fillRect(tx + sw, y + 22, 4, 10);
+        ctx.fillStyle = tc2; ctx.fillRect(tx + sw + 1, y + 28, 2, 5);
+        ctx.fillStyle = hurt ? "#ffaaff" : "#8833bb"; ctx.fillRect(tx + sw + 1, y + 25, 2, 2);
       }
       // Octopus body
       ctx.fillStyle = hurt ? "#cc88ff" : "#5522aa"; ctx.fillRect(x + 2, y + 14, 24, 12);
@@ -609,6 +684,10 @@
       const sk = hurt ? "#ffccaa" : "#c0825a";
       const bt = hurt ? "#886633" : "#2a1000";
       const pt = hurt ? "#554488" : "#1a1050";
+      const swordBob = Math.round(Math.sin(game.tick * 0.08) * 2);
+      // Drop shadow
+      ctx.fillStyle = "rgba(0,0,0,0.22)";
+      ctx.beginPath(); ctx.ellipse(x + 15, y + e.h + 2, 16, 5, 0, 0, Math.PI * 2); ctx.fill();
       if (warn) { ctx.fillStyle = "rgba(255,200,0,0.25)"; ctx.fillRect(x - 4, y - 4, e.w + 8, e.h + 8); }
       // Legs
       ctx.fillStyle = pt;  ctx.fillRect(x + 2, y + 29, 11, 13);
@@ -631,9 +710,9 @@
       // Arms
       ctx.fillStyle = hA;  ctx.fillRect(x - 5, y + 16, 8, 12);
       ctx.fillStyle = sk;  ctx.fillRect(x - 5, y + 25, 8, 5);
-      ctx.fillStyle = "#444"; ctx.fillRect(x - 9, y + 27, 6, 3);
-      ctx.fillStyle = "#222"; ctx.fillRect(x - 7, y + 28, 3, 14);
-      ctx.fillStyle = "#666"; ctx.fillRect(x - 6, y + 28, 1, 14);
+      ctx.fillStyle = "#444"; ctx.fillRect(x - 9, y + 27 + swordBob, 6, 3);
+      ctx.fillStyle = "#222"; ctx.fillRect(x - 7, y + 28 + swordBob, 3, 14);
+      ctx.fillStyle = "#666"; ctx.fillRect(x - 6, y + 28 + swordBob, 1, 14);
       ctx.fillStyle = cF;  ctx.fillRect(x + 27, y + 16, 8, 14);
       ctx.fillStyle = cFL; ctx.fillRect(x + 28, y + 16, 5, 10);
       ctx.fillStyle = "#ddd"; ctx.fillRect(x + 27, y + 29, 2, 5); ctx.fillRect(x + 30, y + 29, 2, 5); ctx.fillRect(x + 33, y + 29, 2, 5);
@@ -670,6 +749,13 @@
     }
 
     function drawWorld() {
+      ctx.save();
+      if (game.shake.dur > 0) {
+        ctx.translate(
+          (Math.random() * 2 - 1) * game.shake.mag,
+          (Math.random() * 2 - 1) * game.shake.mag
+        );
+      }
       // Sky
       const sky = ctx.createLinearGradient(0, 0, 0, H);
       sky.addColorStop(0, "#0a0f2e"); sky.addColorStop(0.45, "#1a3a6e");
@@ -678,6 +764,15 @@
       // Stars
       ctx.fillStyle = "rgba(255,255,255,0.7)";
       for (let i = 0; i < 40; i++) ctx.fillRect((i * 137 + 23) % W, (i * 89 + 11) % (H * 0.35), i % 3 === 0 ? 2 : 1, i % 3 === 0 ? 2 : 1);
+      // Drifting clouds
+      ctx.fillStyle = "rgba(255,255,255,0.10)";
+      for (let i = 0; i < 3; i++) {
+        const cx = ((game.tick * (0.2 + i * 0.1) + i * 320) % (W + 200)) - 100;
+        const cy = 55 + i * 38;
+        ctx.beginPath(); ctx.ellipse(cx, cy, 65 + i * 18, 18, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.ellipse(cx + 42, cy - 10, 40, 13, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.ellipse(cx - 32, cy + 5, 32, 11, 0, 0, Math.PI * 2); ctx.fill();
+      }
       // Far mountains
       ctx.fillStyle = "#2a3d5a";
       ctx.beginPath(); ctx.moveTo(0, H);
@@ -694,10 +789,18 @@
       ctx.lineTo(0,H*.62); ctx.lineTo(100,H*.4); ctx.lineTo(200,H*.55); ctx.lineTo(320,H*.35);
       ctx.lineTo(450,H*.52); ctx.lineTo(560,H*.38); ctx.lineTo(680,H*.56); ctx.lineTo(800,H*.32);
       ctx.lineTo(900,H*.5); ctx.lineTo(W,H*.44); ctx.lineTo(W,H); ctx.fill();
-      // Water
-      ctx.fillStyle = "#1a4a7a"; ctx.fillRect(0, H*.74, W, H*.06);
-      ctx.fillStyle = "rgba(100,180,230,0.4)"; ctx.fillRect(0, H*.74, W, 3);
-      ctx.fillStyle = "rgba(255,255,255,0.15)"; ctx.fillRect(0, H*.77, W, 2);
+      // Animated water
+      ctx.fillStyle = "#1a4a7a"; ctx.fillRect(0, H * .74, W, H * .06);
+      for (let i = 0; i < 3; i++) {
+        ctx.fillStyle = `rgba(100,180,230,${0.15 + i * 0.08})`;
+        ctx.beginPath();
+        ctx.moveTo(0, H * .74 + i * 5);
+        for (let wx = 0; wx <= W; wx += 20) {
+          ctx.lineTo(wx, H * .74 + i * 5 + Math.sin(wx * 0.03 + game.tick * 0.06 + i * 1.2) * 3);
+        }
+        ctx.lineTo(W, H * .74 + 20); ctx.lineTo(0, H * .74 + 20);
+        ctx.fill();
+      }
       // Beach
       const beach = ctx.createLinearGradient(0, H*.78, 0, H);
       beach.addColorStop(0, "#8a7555"); beach.addColorStop(1, "#6a5a3a");
@@ -732,6 +835,15 @@
         if (e.type === "boss") drawBoss(e); else drawGrunt(e);
       }
 
+      // Player projectile trails
+      for (const p of game.projectiles) {
+        if (p.trail) for (let i = 0; i < p.trail.length; i++) {
+          ctx.globalAlpha = (1 - i / p.trail.length) * 0.45;
+          ctx.fillStyle = "#ff6b2c";
+          ctx.beginPath(); ctx.arc(p.trail[i].x, p.trail[i].y, Math.max(1, p.r * (1 - i / p.trail.length) * 0.7), 0, Math.PI * 2); ctx.fill();
+        }
+      }
+      ctx.globalAlpha = 1;
       for (const p of game.projectiles) {
         ctx.fillStyle = "#ff6b2c";
         ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2); ctx.fill();
@@ -739,6 +851,15 @@
         ctx.beginPath(); ctx.ellipse(p.x, p.y, p.r + 5, p.r - 6, 0.3, 0, Math.PI * 2); ctx.stroke();
       }
 
+      // Enemy projectile trails
+      for (const p of game.enemyProjectiles) {
+        if (p.trail) for (let i = 0; i < p.trail.length; i++) {
+          ctx.globalAlpha = (1 - i / p.trail.length) * 0.45;
+          ctx.fillStyle = "#c935ff";
+          ctx.beginPath(); ctx.arc(p.trail[i].x, p.trail[i].y, Math.max(1, p.r * (1 - i / p.trail.length) * 0.7), 0, Math.PI * 2); ctx.fill();
+        }
+      }
+      ctx.globalAlpha = 1;
       for (const p of game.enemyProjectiles) {
         ctx.fillStyle = "#c935ff";
         ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2); ctx.fill();
@@ -747,6 +868,15 @@
       }
 
       drawPlayer();
+
+      // Particles
+      for (const p of game.particles) {
+        ctx.globalAlpha = p.life / p.maxLife;
+        ctx.fillStyle = p.color;
+        ctx.beginPath(); ctx.arc(p.x, p.y, Math.max(0.5, p.size * (p.life / p.maxLife)), 0, Math.PI * 2); ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+      ctx.restore();
 
       ctx.fillStyle = "#00000088"; ctx.fillRect(10, 10, 220, 90);
       ctx.fillStyle = "#fff"; ctx.font = "18px Arial";
