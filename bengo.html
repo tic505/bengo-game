@@ -204,7 +204,7 @@
     // ── Game state ────────────────────────────────────────────────────────────
     const game = {
       state: "menu", level: 0, score: 0, kills: 0, requiredKills: 4,
-      spawnGrace: 0, bossIntro: 0,
+      spawnGrace: 0, bossIntro: 0, transition: 0, nextLevel: 0,
       tiles: [], enemies: [], enemyProjectiles: [], projectiles: [], attacks: [], goal: null,
       particles: [], popups: [],
       shake: { mag: 0, dur: 0 },
@@ -502,13 +502,22 @@
         return true;
       });
 
-      if (game.goal && rects(player,game.goal) && game.kills>=game.requiredKills) {
-        sfx("complete"); game.level++;
-        if (game.level>=LEVELS.length) {
+      if (game.goal && rects(player,game.goal) && game.kills>=game.requiredKills && game.transition===0) {
+        sfx("complete");
+        if (game.level+1>=LEVELS.length) {
           game.state="win";
           if (game.score>highScore) { highScore=game.score; localStorage.setItem("bengo_hi",highScore); }
           stopMusic();
-        } else { loadLevel(game.level); }
+        } else {
+          game.nextLevel = game.level + 1;
+          game.transition = 1;
+          stopMusic();
+        }
+      }
+      if (game.transition>0) {
+        game.transition++;
+        if (game.transition===31) { game.level=game.nextLevel; loadLevel(game.nextLevel); }
+        if (game.transition>65)   { game.transition=0; startMusic(); }
       }
 
       // Rain
@@ -560,6 +569,7 @@
       // Shadow
       ctx.fillStyle="rgba(0,0,0,0.22)";
       ctx.beginPath(); ctx.ellipse(x+15,y+player.h+2,14,5,0,0,Math.PI*2); ctx.fill();
+      ctx.shadowColor="#000"; ctx.shadowBlur=2;
       // Shoes
       ctx.fillStyle="#222";
       ctx.fillRect(x+3,  y+35+wL, 12, 7);
@@ -599,6 +609,7 @@
       ctx.fillRect(x+19, y-3,  4, 2);  // right spike
       ctx.fillRect(x+6,  y+0,  2, 5);  // left sideburn
       ctx.fillRect(x+22, y+0,  2, 5);  // right sideburn
+      ctx.shadowBlur=0;
       // Sword
       const C = { blade:"#e8e8e8", handle:"#7a3800", guard:"#888" };
       if (atk) {
@@ -627,6 +638,7 @@
       if ((e.facing||1)<0) { ctx.translate(cx*2,0); ctx.scale(-1,1); }
       ctx.fillStyle="rgba(0,0,0,0.22)";
       ctx.beginPath(); ctx.ellipse(x+14,y+e.h+2,13,5,0,0,Math.PI*2); ctx.fill();
+      ctx.shadowColor="#000"; ctx.shadowBlur=2;
       for (let i=0;i<5;i++) {
         const tx=x+1+i*5, sw=Math.round(Math.sin(game.tick*0.12+i*0.8)*3);
         ctx.fillStyle=tc1; ctx.fillRect(tx+sw,y+22,4,10);
@@ -646,6 +658,7 @@
       ctx.fillStyle="#fff";    ctx.fillRect(x+9,y+5,1,2); ctx.fillRect(x+20,y+5,1,2);
       ctx.fillStyle="#ee5577"; ctx.fillRect(x+11,y+10,5,3);
       ctx.fillStyle="#331100"; ctx.fillRect(x+10,y+13,2,2); ctx.fillRect(x+15,y+13,2,2);
+      ctx.shadowBlur=0;
       ctx.fillStyle="rgba(255,255,255,0.85)";
       ctx.fillRect(x-4,y+10,9,1); ctx.fillRect(x-3,y+12,8,1);
       ctx.fillRect(x+23,y+10,9,1); ctx.fillRect(x+23,y+12,8,1);
@@ -664,6 +677,7 @@
       ctx.beginPath(); ctx.ellipse(x+15,y+e.h+2,16,5,0,0,Math.PI*2); ctx.fill();
       if (e.phase === 2) { ctx.fillStyle=`rgba(255,40,0,${0.13+Math.sin(game.tick*0.13)*0.09})`; ctx.fillRect(x-8,y-8,e.w+16,e.h+16); }
       if (warn) { ctx.fillStyle="rgba(255,200,0,0.28)"; ctx.fillRect(x-4,y-4,e.w+8,e.h+8); }
+      ctx.shadowColor="#000"; ctx.shadowBlur=2;
       ctx.fillStyle=pt; ctx.fillRect(x+2,y+29,11,13);
       ctx.fillStyle=cF; ctx.fillRect(x+17,y+29,11,13);
       ctx.fillStyle=cFL;ctx.fillRect(x+19,y+30,7,10);
@@ -704,6 +718,7 @@
       ctx.fillStyle="#111";   ctx.fillRect(x+20,y+5,2,5);
       ctx.fillStyle="#fff";   ctx.fillRect(x+21,y+5,1,2);
       ctx.fillStyle="#ee5577";ctx.fillRect(x+20,y+10,5,3);
+      ctx.shadowBlur=0;
       ctx.fillStyle="rgba(255,255,255,0.9)";ctx.fillRect(x+25,y+11,8,1);ctx.fillRect(x+25,y+13,7,1);
       ctx.fillStyle="#000";ctx.fillRect(x+14,y+1,2,14);
       ctx.fillStyle="#00000099";ctx.fillRect(e.x,e.y-14,e.w,8);
@@ -916,6 +931,25 @@
         }
       }
 
+      // Torches on top-surface tiles (every 4th, no tile above)
+      const tSet=new Set(game.tiles.map(t=>`${Math.round(t.x/TILE)},${Math.round(t.y/TILE)}`));
+      let ti=0;
+      for (const t of game.tiles) {
+        ti++;
+        const col=Math.round(t.x/TILE), row=Math.round(t.y/TILE);
+        if (tSet.has(`${col},${row-1}`)) continue;
+        if (ti%4!==1) continue;
+        const fx=t.x+TILE/2, fy=t.y;
+        const fl=Math.sin(game.tick*0.18+col*1.3+row*0.9);
+        const fh=7+Math.round(fl*2);
+        const fc=fl>0.3?"#ffee44":fl>-0.3?"#ffaa00":"#ff6600";
+        ctx.fillStyle="#887766"; ctx.fillRect(fx-3,fy-6,6,6);
+        ctx.fillStyle=fc;
+        ctx.beginPath(); ctx.moveTo(fx,fy-6-fh); ctx.lineTo(fx-4,fy-6); ctx.lineTo(fx+4,fy-6); ctx.closePath(); ctx.fill();
+        ctx.fillStyle=`rgba(255,200,50,${(0.22+fl*0.08).toFixed(2)})`;
+        ctx.beginPath(); ctx.arc(fx,fy-8-fh/2,7,0,Math.PI*2); ctx.fill();
+      }
+
       // Goal flag (locked = grey until kills met)
       if (game.goal) {
         const flagUnlocked = game.kills >= game.requiredKills;
@@ -1079,6 +1113,22 @@
         ctx.font="bold 34px Arial";ctx.fillText("LEVEL "+(game.level+1),W/2,ty+40);
         ctx.fillStyle="#7aacff";ctx.font="16px Arial";ctx.fillText(LEVEL_NAMES[game.level]||"",W/2,ty+64);
         ctx.textAlign="left";ctx.restore();
+      }
+
+      // Level transition curtain wipe
+      if (game.transition>0) {
+        const t=game.transition;
+        const progress=t<=32 ? t/32 : Math.max(0,(65-t)/33);
+        const half=Math.min(progress*(W/2+4), W/2+2);
+        ctx.fillStyle="#000";
+        ctx.fillRect(0,0,half,H); ctx.fillRect(W-half,0,half,H);
+        if (t>=30 && t<=55) {
+          ctx.fillStyle="#fff"; ctx.font="bold 40px Arial"; ctx.textAlign="center";
+          ctx.fillText("LEVEL "+(game.level+1),W/2,H/2-8);
+          ctx.fillStyle="#7aacff"; ctx.font="18px Arial";
+          ctx.fillText(LEVEL_NAMES[game.level]||"",W/2,H/2+22);
+          ctx.textAlign="left";
+        }
       }
     }
 
