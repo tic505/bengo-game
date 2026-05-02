@@ -82,6 +82,8 @@
 
     // ── Audio ─────────────────────────────────────────────────────────────────
     const audio = new (window.AudioContext || window.webkitAudioContext)();
+    const masterGain = audio.createGain();
+    masterGain.connect(audio.destination);
     // Pre-created noise buffer reused across all noise SFX
     const _noiseLen = audio.sampleRate;
     const _noiseBuf = audio.createBuffer(1, _noiseLen, audio.sampleRate);
@@ -94,7 +96,7 @@
       if (endFreq !== null) osc.frequency.exponentialRampToValueAtTime(endFreq, audio.currentTime + dur);
       g.gain.value = gain;
       g.gain.exponentialRampToValueAtTime(0.0001, audio.currentTime + dur);
-      osc.connect(g).connect(audio.destination);
+      osc.connect(g).connect(masterGain);
       osc.start(); osc.stop(audio.currentTime + dur);
     }
     function noise(dur = 0.08, gain = 0.04) {
@@ -102,7 +104,7 @@
       src.buffer = _noiseBuf;
       g.gain.value = gain;
       g.gain.exponentialRampToValueAtTime(0.0001, audio.currentTime + dur);
-      src.connect(g).connect(audio.destination);
+      src.connect(g).connect(masterGain);
       src.start(); src.stop(audio.currentTime + dur);
     }
     function sfx(name) {
@@ -204,7 +206,7 @@
     // ── Game state ────────────────────────────────────────────────────────────
     const game = {
       state: "menu", level: 0, score: 0, kills: 0, requiredKills: 4,
-      spawnGrace: 0, bossIntro: 0, transition: 0, nextLevel: 0,
+      spawnGrace: 0, bossIntro: 0, transition: 0, nextLevel: 0, volume: 1.0,
       combo: 0, comboTimer: 0,
       tiles: [], enemies: [], enemyProjectiles: [], projectiles: [], attacks: [], goal: null,
       particles: [], popups: [], pickups: [],
@@ -1274,6 +1276,15 @@
         ctx.fillStyle="#eaf2ff"; ctx.textAlign="center";
         ctx.font="bold 56px Arial"; ctx.fillText("PAUSED",W/2,H/2-10);
         ctx.fillStyle="#7aacff"; ctx.font="18px Arial"; ctx.fillText("Press P or Enter to resume",W/2,H/2+34);
+        const vbx=W/2-100, vby=H/2+68, vbw=200, vbh=18;
+        ctx.fillStyle="#00000088"; ctx.fillRect(vbx-2,vby-22,vbw+4,52);
+        ctx.fillStyle="#7aacff"; ctx.font="14px Arial";
+        ctx.fillText("◄  Volume  ►",W/2,vby-6);
+        ctx.fillStyle="#223"; ctx.fillRect(vbx,vby,vbw,vbh);
+        ctx.fillStyle="#ff6600"; ctx.fillRect(vbx,vby,vbw*game.volume,vbh);
+        ctx.strokeStyle="#aac4ff"; ctx.lineWidth=1; ctx.strokeRect(vbx,vby,vbw,vbh);
+        ctx.fillStyle="#fff"; ctx.font="12px Arial";
+        ctx.fillText(Math.round(game.volume*100)+"%",W/2,vby+vbh+14);
         ctx.textAlign="left";
       } else if (game.state==="menu") {
         drawMenuScreen();
@@ -1318,6 +1329,10 @@
       if (["ArrowUp","ArrowDown","ArrowLeft","ArrowRight"," "].includes(e.key)) e.preventDefault();
       if (e.key.toLowerCase()==="l") { game.state="playing";game.level=3;game.score=0;player.hp=3;player.power=0;loadLevel(3); }
       if (e.key.toLowerCase()==="p") { if(game.state==="playing"){game.state="paused";stopMusic();}else if(game.state==="paused"){game.state="playing";startMusic();} }
+      if (game.state==="paused") {
+        if (e.key==="ArrowLeft")  { game.volume=Math.max(0,+(game.volume-0.1).toFixed(1)); masterGain.gain.value=game.volume; }
+        if (e.key==="ArrowRight") { game.volume=Math.min(1,+(game.volume+0.1).toFixed(1)); masterGain.gain.value=game.volume; }
+      }
       if (e.key==="Enter") { if(game.state==="menu"||game.state==="gameover"||game.state==="win") startGame(); else if(game.state==="paused"){game.state="playing";startMusic();} }
     });
 
