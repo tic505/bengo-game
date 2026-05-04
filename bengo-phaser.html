@@ -446,8 +446,7 @@
       nik:"More thunder for you!",rok:"I'll burn you this time!"};
     game.bossDialogue = {text: lines[bd.type]||"...", timer:100, maxTimer:100};
     game.spawnGrace = 45;
-    game.beni = {active:true, x:player.x-60, y:player.y, vx:0, vy:0,
-                 state:"running", target:null, timer:0, facing:1, shieldUsed:false};
+    game.beni.active = true; game.beni.state = "running"; game.beni.target = null; game.beni.timer = 0; game.beni.shieldUsed = false;
     sfx("thunder"); triggerShake(4, 10);
   }
 
@@ -1793,9 +1792,8 @@
       if (p.trail) for (let i=0;i<p.trail.length;i++) { ctx.globalAlpha=(1-i/p.trail.length)*0.45;ctx.fillStyle="#ff6b2c";ctx.beginPath();ctx.arc(p.trail[i].x,p.trail[i].y,Math.max(1,p.r*(1-i/p.trail.length)*0.7),0,Math.PI*2);ctx.fill(); }
     }
     ctx.globalAlpha=1;
-    ctx.save();ctx.filter="blur(10px)";ctx.globalAlpha=0.65;ctx.fillStyle="#ffaa55";
-    ctx.beginPath(); for (const p of game.projectiles) ctx.arc(p.x,p.y,p.r*1.5,0,Math.PI*2); ctx.fill();
-    ctx.filter="none";ctx.globalAlpha=1;ctx.restore();
+    for (const p of game.projectiles) { ctx.globalAlpha=0.18;ctx.fillStyle="#ffaa55";ctx.beginPath();ctx.arc(p.x,p.y,p.r*2.8,0,Math.PI*2);ctx.fill(); ctx.globalAlpha=0.35;ctx.beginPath();ctx.arc(p.x,p.y,p.r*2,0,Math.PI*2);ctx.fill(); }
+    ctx.globalAlpha=1;
     for (const p of game.projectiles) { ctx.fillStyle="#ff6b2c";ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fill(); ctx.strokeStyle="#ffd28d";ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(p.x,p.y,p.r+5,p.r-6,0.3,0,Math.PI*2);ctx.stroke(); }
 
     for (const p of game.enemyProjectiles) {
@@ -1804,12 +1802,8 @@
       if (p.trail) for (let i=0;i<p.trail.length;i++) { ctx.globalAlpha=(1-i/p.trail.length)*0.45;ctx.fillStyle=tc;ctx.beginPath();ctx.arc(p.trail[i].x,p.trail[i].y,Math.max(1,p.r*(1-i/p.trail.length)*0.7),0,Math.PI*2);ctx.fill(); }
     }
     ctx.globalAlpha=1;
-    ctx.save();ctx.filter="blur(10px)";ctx.globalAlpha=0.65;
-    const _ep=game.enemyProjectiles.filter(p=>!p.shockwave);
-    for (const [col,pred] of [["#aaffff",p=>p.thunder],["#ffaa44",p=>p.fireBolt],["#ee77ff",p=>!p.thunder&&!p.fireBolt]]) {
-      ctx.fillStyle=col;ctx.beginPath();for(const p of _ep){if(pred(p))ctx.arc(p.x,p.y,p.r*1.4,0,Math.PI*2);}ctx.fill();
-    }
-    ctx.filter="none";ctx.globalAlpha=1;ctx.restore();
+    for (const p of game.enemyProjectiles) { if (p.shockwave) continue; const gc=p.thunder?"#aaffff":p.fireBolt?"#ffaa44":"#ee77ff"; ctx.globalAlpha=0.15;ctx.fillStyle=gc;ctx.beginPath();ctx.arc(p.x,p.y,p.r*2.5,0,Math.PI*2);ctx.fill(); ctx.globalAlpha=0.3;ctx.beginPath();ctx.arc(p.x,p.y,p.r*1.8,0,Math.PI*2);ctx.fill(); }
+    ctx.globalAlpha=1;
     for (const p of game.enemyProjectiles) {
       if (p.shockwave) continue;
       const pc=p.thunder?"#44ddff":p.fireBolt?"#ff4400":"#c935ff";
