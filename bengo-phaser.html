@@ -257,7 +257,7 @@
     hp: 3, facing: 1, onGround: false,
     attackCd: 0, hurtCd: 0, power: 0,
     coyoteFrames: 0, jumpBuffer: 0, jumpsLeft: 2,
-    fireCd: 0, swordHits: 0
+    fireCd: 0, swordHits: 0, powerFireCd: 0
   };
 
   function rects(a, b) {
@@ -277,7 +277,7 @@
     game.beni = { active: false, x: 0, y: 0, vx: 0, vy: 0, state: "idle", target: null, timer: 0, facing: 1, shieldUsed: false };
     game.beniHits = 0;
     game.gauntletIndex = 0; game.gauntletNext = 0; game.infinitePower = false;
-    player.swordHits = 0; player.fireCd = 0;
+    player.swordHits = 0; player.fireCd = 0; player.powerFireCd = 0;
     const _timers = [9000,8400,7800,7200,6600,6000,5400,0]; game.timer = index < _timers.length ? _timers[index] : 7200;
 
     if (index >= 2) {
@@ -335,7 +335,7 @@
     player.coyoteFrames = 0; player.jumpBuffer = 0; player.jumpsLeft = 2;
     game.kills = 0;
     game.requiredKills = REQUIRED_KILLS[index] || 4;
-    game.spawnGrace = 90;
+    game.spawnGrace = 120;
   }
 
   function moveAndCollide(entity) {
@@ -391,8 +391,9 @@
       game.attacks.push({ x:ax, y:player.y+8, w:40, h:24, t:6 });
       sfx("sword");
     }
-    if ((keys["k"] || keys["x"]) && player.power >= 100) {
+    if ((keys["k"] || keys["x"]) && player.power >= 100 && player.powerFireCd <= 0) {
       player.power = 0;
+      player.powerFireCd = 300;
       game.projectiles.push({ x:player.x+player.w/2, y:player.y+14, r:13, vx:player.facing*10, life:180, hits:new Set(), trail:[] });
       flash = 8; sfx("saturn");
       spawnParticles(player.x+player.w/2, player.y+player.h/2, 15, ["#ffd700","#ffaa00","#ffffff","#ff6b2c"], {speed:7,life:30,size:5,upBias:3});
@@ -479,6 +480,7 @@
 
     if (player.attackCd > 0) player.attackCd--;
     if (player.hurtCd > 0)   player.hurtCd--;
+    if (player.powerFireCd > 0) player.powerFireCd--;
 
     for (const a of game.attacks) a.t--;
     game.attacks = game.attacks.filter(a => a.t > 0);
@@ -489,7 +491,7 @@
       for (const e of game.enemies) {
         if (!e.active && ["boss","mouse","orangecat","purplecat","goldcat","nik","rok"].includes(e.type) && e.alive && !e.dying) {
           e.active = true;
-          game.spawnGrace = 30;
+          game.spawnGrace = 90;
           const bossNames = {boss:"KLANAC",mouse:"THE MOUSE",orangecat:"ORANGE CAT",purplecat:"PURPLE CAT",goldcat:"GOLD CAT",nik:"NIK",rok:"ROK"};
           const lines = {boss:"You dare challenge me, boy?",mouse:"Squeak!",orangecat:"You'll regret this!",purplecat:"Heh, foolish...",goldcat:"My shoe will crush you!",nik:"Thunder calls your name!",rok:"Burn!!"};
           game.bossDialogue = { text: lines[e.type]||"...", timer: 100, maxTimer: 100 };
@@ -819,7 +821,7 @@
     game.enemyAttacks = game.enemyAttacks.filter(a => a.t > 0);
     if (rects(player, {x:0,y:0,w:0,h:0}) === false) {} // no-op
     for (const a of game.enemyAttacks) {
-      if (player.hurtCd <= 0 && player.x < a.x+a.w && player.x+player.w > a.x && player.y < a.y+a.h && player.y+player.h > a.y) {
+      if (player.hurtCd <= 0 && game.spawnGrace <= 0 && player.x < a.x+a.w && player.x+player.w > a.x && player.y < a.y+a.h && player.y+player.h > a.y) {
         player.hp--; player.hurtCd = 50; player.vx = -player.facing*5; player.vy = -6; sfx("hurt");
         spawnParticles(player.x+player.w/2, player.y+player.h/2, 8, ["#ff8800","#ffcc44","#ffffff"], {speed:5,life:20,upBias:1});
         triggerShake(4,8);
@@ -842,9 +844,9 @@
           }
         }
       }
-      const hitPlayer = p.shockwave
+      const hitPlayer = game.spawnGrace <= 0 && (p.shockwave
         ? (player.x < p.x+16 && player.x+player.w > p.x-16 && player.y < p.y+10 && player.y+player.h > p.y-10 && player.hurtCd<=0)
-        : (p.x+p.r>player.x&&p.x-p.r<player.x+player.w&&p.y+p.r>player.y&&p.y-p.r<player.y+player.h&&player.hurtCd<=0);
+        : (p.x+p.r>player.x&&p.x-p.r<player.x+player.w&&p.y+p.r>player.y&&p.y-p.r<player.y+player.h&&player.hurtCd<=0));
       if (hitPlayer) {
         const b = game.beni;
         if (game.level === 7 && b.active && !b.shieldUsed) {
@@ -935,7 +937,10 @@
           b.facing = b.target.x > b.x ? 1 : -1;
           b.x += b.facing * 5;
           if (Math.abs(b.target.x - b.x) < 22) { b.state = "biting"; b.timer = 20; }
-        } else { b.state = "leaving"; }
+        } else {
+          if (game.level === 7) { b.state = "cooldown"; b.timer = 180; }
+          else { b.state = "leaving"; }
+        }
       } else if (b.state === "biting") {
         if (--b.timer <= 0) {
           if (b.target && b.target.alive && !b.target.dying) {
@@ -943,8 +948,14 @@
             if (b.target.type !== "boss") b.target.stunTimer = 60;
             spawnParticles(b.x, b.y, 8, ["#ffcc44","#ff8844","#ffffff"], {speed:4,life:18,upBias:1}); sfx("hit");
           }
-          b.state = "leaving";
+          if (game.level === 7) { b.state = "cooldown"; b.timer = 180; }
+          else { b.state = "leaving"; }
         }
+      } else if (b.state === "cooldown") {
+        const targetX = player.x - 50;
+        b.x += (targetX - b.x) * 0.05;
+        b.facing = player.x > b.x ? 1 : -1;
+        if (--b.timer <= 0) { b.state = "running"; b.target = null; }
       } else {
         b.x += 7; if (b.x > W+30) b.active = false;
       }
@@ -1075,6 +1086,15 @@
       grd.addColorStop(0,`rgba(255,215,0,${pulse.toFixed(2)})`);
       grd.addColorStop(1,"rgba(255,215,0,0)");
       ctx.fillStyle=grd; ctx.fillRect(x-18,y-12,66,75);
+    }
+    if (game.spawnGrace > 0) {
+      const pulse=0.4+Math.sin(game.tick*0.2)*0.2;
+      const grd=ctx.createRadialGradient(x+15,y+21,8,x+15,y+21,44);
+      grd.addColorStop(0,`rgba(100,180,255,${pulse.toFixed(2)})`);
+      grd.addColorStop(1,"rgba(100,180,255,0)");
+      ctx.fillStyle=grd; ctx.fillRect(x-22,y-16,74,84);
+      ctx.strokeStyle=`rgba(160,220,255,${(0.5+Math.sin(game.tick*0.3)*0.3).toFixed(2)})`;
+      ctx.lineWidth=2; ctx.beginPath(); ctx.ellipse(x+15,y+21,32,42,0,0,Math.PI*2); ctx.stroke();
     }
   }
 
@@ -1610,8 +1630,6 @@
     }
     addLight(player.x+player.w/2, player.y+player.h/2, 190, 0.95);
     if (game.goal) addLight(game.goal.x+16, game.goal.y+12, 110, 0.75);
-    for (const p of game.projectiles)      addLight(p.x, p.y, 85, 0.9);
-    for (const p of game.enemyProjectiles) addLight(p.x, p.y, 85, 0.9);
     for (const e of game.enemies) {
       if (e.alive && !e.dying) {
         if (e.type==="boss") addLight(e.x+e.w/2, e.y+e.h/2, 130, 0.65);
@@ -1775,8 +1793,8 @@
       if (p.trail) for (let i=0;i<p.trail.length;i++) { ctx.globalAlpha=(1-i/p.trail.length)*0.45;ctx.fillStyle="#ff6b2c";ctx.beginPath();ctx.arc(p.trail[i].x,p.trail[i].y,Math.max(1,p.r*(1-i/p.trail.length)*0.7),0,Math.PI*2);ctx.fill(); }
     }
     ctx.globalAlpha=1;
-    ctx.save();ctx.filter="blur(10px)";
-    for (const p of game.projectiles) { ctx.globalAlpha=0.65;ctx.fillStyle="#ffaa55";ctx.beginPath();ctx.arc(p.x,p.y,p.r*1.5,0,Math.PI*2);ctx.fill(); }
+    ctx.save();ctx.filter="blur(10px)";ctx.globalAlpha=0.65;ctx.fillStyle="#ffaa55";
+    ctx.beginPath(); for (const p of game.projectiles) ctx.arc(p.x,p.y,p.r*1.5,0,Math.PI*2); ctx.fill();
     ctx.filter="none";ctx.globalAlpha=1;ctx.restore();
     for (const p of game.projectiles) { ctx.fillStyle="#ff6b2c";ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fill(); ctx.strokeStyle="#ffd28d";ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(p.x,p.y,p.r+5,p.r-6,0.3,0,Math.PI*2);ctx.stroke(); }
 
@@ -1786,8 +1804,11 @@
       if (p.trail) for (let i=0;i<p.trail.length;i++) { ctx.globalAlpha=(1-i/p.trail.length)*0.45;ctx.fillStyle=tc;ctx.beginPath();ctx.arc(p.trail[i].x,p.trail[i].y,Math.max(1,p.r*(1-i/p.trail.length)*0.7),0,Math.PI*2);ctx.fill(); }
     }
     ctx.globalAlpha=1;
-    ctx.save();ctx.filter="blur(10px)";
-    for (const p of game.enemyProjectiles) { if (p.shockwave) continue; const gc=p.thunder?"#aaffff":p.fireBolt?"#ffaa44":"#ee77ff"; ctx.globalAlpha=0.65;ctx.fillStyle=gc;ctx.beginPath();ctx.arc(p.x,p.y,p.r*1.4,0,Math.PI*2);ctx.fill(); }
+    ctx.save();ctx.filter="blur(10px)";ctx.globalAlpha=0.65;
+    const _ep=game.enemyProjectiles.filter(p=>!p.shockwave);
+    for (const [col,pred] of [["#aaffff",p=>p.thunder],["#ffaa44",p=>p.fireBolt],["#ee77ff",p=>!p.thunder&&!p.fireBolt]]) {
+      ctx.fillStyle=col;ctx.beginPath();for(const p of _ep){if(pred(p))ctx.arc(p.x,p.y,p.r*1.4,0,Math.PI*2);}ctx.fill();
+    }
     ctx.filter="none";ctx.globalAlpha=1;ctx.restore();
     for (const p of game.enemyProjectiles) {
       if (p.shockwave) continue;
@@ -1856,7 +1877,8 @@
     ctx.fillStyle="#223"; ctx.fillRect(12,126,100,14);
     ctx.fillStyle=player.power>=100?"#ffd700":"#72ff88";
     ctx.fillRect(12,126,player.power,14);
-    if (player.power>=100) { ctx.strokeStyle="#fff";ctx.strokeRect(12,126,100,14); ctx.fillStyle="#fff";ctx.font="11px Arial";ctx.fillText("K / X READY",16,137); }
+    if (player.power>=100 && player.powerFireCd<=0) { ctx.strokeStyle="#fff";ctx.strokeRect(12,126,100,14); ctx.fillStyle="#fff";ctx.font="11px Arial";ctx.fillText("K / X READY",16,137); }
+    else if (player.powerFireCd>0) { ctx.fillStyle="#888";ctx.font="11px Arial";ctx.fillText("CD: "+Math.ceil(player.powerFireCd/60)+"s",16,137); }
 
     // Timer
     if (game.timer > 0) {
