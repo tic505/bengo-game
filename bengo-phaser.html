@@ -278,7 +278,7 @@
     game.beniHits = 0;
     game.gauntletIndex = 0; game.gauntletNext = 0; game.infinitePower = false;
     player.swordHits = 0; player.fireCd = 0;
-    game.timer = [9000,8400,7800,7200,6600,6000,5400,0][index] || 7200;
+    const _timers = [9000,8400,7800,7200,6600,6000,5400,0]; game.timer = index < _timers.length ? _timers[index] : 7200;
 
     if (index >= 2) {
       const n = index === 7 ? 200 : index === 6 ? 180 : index >= 4 ? 150 : 130;
@@ -572,7 +572,7 @@
         }
         if (e.crushState === "rising") {
           e.vy = -18; e.vx = 0;
-          if (e.y < 48) { e.crushState = "targeting"; e.crushTimer = 40; }
+          if (e.y <= TILE) { e.crushState = "targeting"; e.crushTimer = 40; }
         }
         if (e.crushState === "targeting") {
           e.crushTargetX = player.x + player.w/2;
@@ -2131,6 +2131,7 @@
 
     if (e.key.toLowerCase() === "l") {
       _doStartGame(7);
+      game.state = "playing"; startMusic();
       if (phaserGame && !phaserGame.scene.isActive("Game")) {
         phaserGame.scene.stop("Menu"); phaserGame.scene.start("Game");
       }
