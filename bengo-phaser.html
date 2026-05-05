@@ -40,7 +40,7 @@
         <button class="touch-btn" id="btn-sword">⚔</button>
       </div>
     </div>
-    <div class="hint">WASD/Arrows move | Double jump | J sword | K power | P pause | L → gauntlet</div>
+    <div class="hint">WASD/Arrows move | Double jump | J sword | K power | P pause</div>
   </div>
 
   <!-- SWAP: to use local Phaser, replace with: <script src="phaser.min.js"></script> -->
@@ -214,22 +214,12 @@
     ["####################","####################","#...E.....E........#","#.####.......####..#","#.P................#","#.......####.......#","#..E..E............#","#.####.......####..#","#B.E.......E.....F.#","####################"],
     ["####################","#..................#","#....####..........#","#..................#","#....####..........#","#.P..............N.#","#.......####.......#","#.E.....E..........#","#..................#","#....###...###....F#","####################"],
     ["####################","#..................#","#.E..........E.....#","#..####......####..#","#..................#","#.P................#","#.......####.......#","#..................#","#.E..............R.#","#....###...###....F#","####################"],
-    ["####################","#.....E......E.....#","#...####....####...#","#..................#","#.##..........##...#","#.....E.......E....#","#......###.........#","#..................#","#.P..............B.#","#....###...###....F#","####################"],
-    ["####################","#..................#","#....##......##....#","#..................#","#.##..........##...#","#.#............#...#","#..................#","#......######......#","#..................#","#.P.....B.......F..#","####################"]
+    ["####################","#.....E......E.....#","#...####....####...#","#..................#","#.##..........##...#","#.....E.......E....#","#......###.........#","#..................#","#.P..............B.#","#....###...###....F#","####################"]
   ];
-  const REQUIRED_KILLS = [7, 7, 5, 7, 3, 4, 5, 7];
-  const LEVEL_NAMES = ["THE HUNT", "THE PURSUIT", "THE SIEGE", "THE TUNNEL", "NIK'S LAIR", "ROK'S LAIR", "FACE KLANAC", "THE FINAL GAUNTLET"];
+  const REQUIRED_KILLS = [7, 7, 5, 7, 3, 4, 5];
+  const LEVEL_NAMES = ["THE HUNT", "THE PURSUIT", "THE SIEGE", "THE TUNNEL", "NIK'S LAIR", "ROK'S LAIR", "FACE KLANAC"];
 
   // ── Gauntlet boss definitions ────────────────────────────────────────────────
-  const GAUNTLET_BOSSES = [
-    {type:"mouse",     hp:30,  maxHp:30,  shootCd:240, extra:{dashCd:0,phase:1}},
-    {type:"orangecat", hp:42,  maxHp:42,  shootCd:180, extra:{dashCd:0,phase:1}},
-    {type:"purplecat", hp:54,  maxHp:54,  shootCd:140, extra:{dashCd:0,phase:1}},
-    {type:"goldcat",   hp:65,  maxHp:65,  shootCd:120, extra:{dashCd:0,phase:1}},
-    {type:"nik",       hp:60,  maxHp:60,  shootCd:200, extra:{flying:false,flyTimer:160,swordCd:0}},
-    {type:"rok",       hp:60,  maxHp:60,  shootCd:150, extra:{chargeTimer:100,chargeState:null,chargeDur:0,chargeDir:1,swordCd:0}},
-    {type:"boss",      hp:100, maxHp:100, shootCd:120, extra:{powerUsed:false,powerCd:0,slamCd:160,slamState:null,crushCd:160,crushState:null,crushTimer:0,crushTargetX:0}},
-  ];
 
   // ── Game state ──────────────────────────────────────────────────────────────
   const game = {
@@ -238,17 +228,14 @@
     combo: 0, comboTimer: 0,
     tiles: [], enemies: [], enemyProjectiles: [], projectiles: [], attacks: [], goal: null,
     particles: [], popups: [], pickups: [],
-    enemyAttacks: [], firePatches: [], elecTiles: [], elecTimer: 180,
     bossDialogue: { text: "", timer: 0, maxTimer: 0 },
     shake: { mag: 0, dur: 0 },
     tick: 0, hitStop: 0,
     rain: [], lightning: 0, lightningTimer: 240,
     levelTitle: 0,
-    lives: 3, timer: 0, gruntCount: 0,
+    lives: 3, timer: 0,
     countdown: 0,
-    gauntletIndex: 0, gauntletNext: 0, infinitePower: false,
-    beni: { active: false, x: 0, y: 0, vx: 0, vy: 0, state: "idle", target: null, timer: 0, facing: 1, shieldUsed: false },
-    beniHits: 0
+    beni: { active: false, x: 0, y: 0, vx: 0, vy: 0, state: "idle", target: null, timer: 0, facing: 1, shieldUsed: false }
   };
 
   const player = {
@@ -257,7 +244,7 @@
     hp: 3, facing: 1, onGround: false,
     attackCd: 0, hurtCd: 0, power: 0,
     coyoteFrames: 0, jumpBuffer: 0, jumpsLeft: 2,
-    fireCd: 0, swordHits: 0, powerFireCd: 0
+    swordHits: 0, powerFireCd: 0
   };
 
   function rects(a, b) {
@@ -270,18 +257,15 @@
     game.projectiles = []; game.attacks = []; game.goal = null;
     game.particles = []; game.popups = []; game.pickups = []; game.hitStop = 0;
     game.combo = 0; game.comboTimer = 0;
-    game.enemyAttacks = []; game.firePatches = []; game.elecTiles = []; game.elecTimer = 180;
     game.bossDialogue = { text: "", timer: 0, maxTimer: 0 };
     game.rain = []; game.lightning = 0; game.lightningTimer = 240;
     game.levelTitle = 120;
     game.beni = { active: false, x: 0, y: 0, vx: 0, vy: 0, state: "idle", target: null, timer: 0, facing: 1, shieldUsed: false };
-    game.beniHits = 0;
-    game.gauntletIndex = 0; game.gauntletNext = 0; game.infinitePower = false;
-    player.swordHits = 0; player.fireCd = 0; player.powerFireCd = 0;
-    const _timers = [9000,8400,7800,7200,6600,6000,5400,0]; game.timer = index < _timers.length ? _timers[index] : 7200;
+    player.swordHits = 0; player.powerFireCd = 0;
+    const _timers = [9000,8400,7800,7200,6600,6000,5400]; game.timer = index < _timers.length ? _timers[index] : 7200;
 
     if (index >= 2) {
-      const n = index === 7 ? 200 : index === 6 ? 180 : index >= 4 ? 150 : 130;
+      const n = index === 6 ? 180 : index >= 4 ? 150 : 130;
       for (let i = 0; i < n; i++)
         game.rain.push({ x: Math.random()*W, y: Math.random()*H, vy: 10+Math.random()*4 });
     }
@@ -291,8 +275,7 @@
       1: { type:"orangecat", hp:42,  maxHp:42,  shootCd:180 },
       2: { type:"purplecat", hp:54,  maxHp:54,  shootCd:140 },
       3: { type:"goldcat",   hp:65,  maxHp:65,  shootCd:120 },
-      6: { type:"boss",      hp:80,  maxHp:80,  shootCd:160 },
-      7: GAUNTLET_BOSSES[0]
+      6: { type:"boss",      hp:80,  maxHp:80,  shootCd:160 }
     };
 
     const map = LEVELS[index];
@@ -305,12 +288,11 @@
         if (ch === "B") {
           const bd = BOSS_DEFS[index] || BOSS_DEFS[6];
           const isKlanac = bd.type==="boss";
-          const extra = isKlanac ? {powerUsed:false,powerCd:0,slamCd:index===7?160:220,slamState:null,crushCd:index===7?160:300,crushState:null,crushTimer:0,crushTargetX:0} : {dashCd:0,phase:1};
-          const isActive = index === 7; // gauntlet first boss spawns immediately active
-          game.enemies.push({ x:x+8, y:y+6, w:player.w, h:player.h, vx:-0.8, vy:0, hp:bd.hp, maxHp:bd.maxHp, onGround:false, alive:true, type:bd.type, hurtCd:0, active:isActive, shootCd:bd.shootCd, shootWindup:0, phase:1, stunTimer:0, ...extra });
+          const extra = isKlanac ? {powerUsed:false,powerCd:0,slamCd:220,slamState:null,crushCd:300,crushState:null,crushTimer:0,crushTargetX:0} : {phase:1};
+          game.enemies.push({ x:x+8, y:y+6, w:player.w, h:player.h, vx:-0.8, vy:0, hp:bd.hp, maxHp:bd.maxHp, onGround:false, alive:true, type:bd.type, hurtCd:0, active:false, shootCd:bd.shootCd, shootWindup:0, phase:1, stunTimer:0, ...extra });
         }
-        if (ch === "N") game.enemies.push({ x:x+8, y:y+6, w:player.w, h:player.h, vx:-1.2, vy:0, hp:60, maxHp:60, onGround:false, alive:true, type:"nik", hurtCd:0, active:false, shootCd:200, shootWindup:0, phase:1, stunTimer:0, flying:false, flyTimer:160, swordCd:0 });
-        if (ch === "R") game.enemies.push({ x:x+8, y:y+6, w:player.w, h:player.h, vx:-1.2, vy:0, hp:60, maxHp:60, onGround:false, alive:true, type:"rok", hurtCd:0, active:false, shootCd:150, shootWindup:0, phase:1, stunTimer:0, chargeTimer:100, chargeState:null, chargeDur:0, chargeDir:1, swordCd:0 });
+        if (ch === "N") game.enemies.push({ x:x+8, y:y+6, w:player.w, h:player.h, vx:-1.2, vy:0, hp:60, maxHp:60, onGround:false, alive:true, type:"nik", hurtCd:0, active:false, shootCd:200, shootWindup:0, phase:1, stunTimer:0 });
+        if (ch === "R") game.enemies.push({ x:x+8, y:y+6, w:player.w, h:player.h, vx:-1.2, vy:0, hp:60, maxHp:60, onGround:false, alive:true, type:"rok", hurtCd:0, active:false, shootCd:150, shootWindup:0, phase:1, stunTimer:0 });
         if (ch === "F") game.goal = { x:x+10, y:y+4, w:26, h:44 };
       }
     }
@@ -321,15 +303,6 @@
     } else {
       game.bossIntro = 0;
     }
-
-    if (index === 7) {
-      game.infinitePower = true;
-      game.bossDialogue = { text: "Face them all... if you dare!", timer: 120, maxTimer: 120 };
-      // Beni is always active in the gauntlet
-      game.beni = { active: true, x: player.x - 50, y: player.y, vx: 0, vy: 0, state: "running", target: null, timer: 0, facing: 1, shieldUsed: false };
-    }
-
-    game.gruntCount = game.enemies.filter(e => e.type === "grunt").length;
 
     player.vx = 0; player.vy = 0; player.attackCd = 0; player.hurtCd = 0;
     player.coyoteFrames = 0; player.jumpBuffer = 0; player.jumpsLeft = 2;
@@ -428,30 +401,7 @@
     b.timer = 0;
   }
 
-  function _spawnGauntletBoss(idx) {
-    if (idx >= GAUNTLET_BOSSES.length) return;
-    const bd = GAUNTLET_BOSSES[idx];
-    const isKlanac = bd.type === "boss";
-    game.enemies.push({
-      x: W/2-15, y: 0, w: 30, h: 36,
-      vx: -0.8, vy: 0, hp: bd.hp, maxHp: bd.maxHp,
-      onGround: false, alive: true, type: bd.type,
-      hurtCd: 0, active: true, shootCd: bd.shootCd,
-      shootWindup: 0, phase: 1, stunTimer: 0, dying: false, deathTimer: 0,
-      lunge: 0, lungeCd: 0, chasing: false, facing: -1,
-      ...bd.extra
-    });
-    const lines = {boss:"You still stand?! Unacceptable!",mouse:"Back for more?",
-      orangecat:"Again?!",purplecat:"Impossible...",goldcat:"How are you still here!",
-      nik:"More thunder for you!",rok:"I'll burn you this time!"};
-    game.bossDialogue = {text: lines[bd.type]||"...", timer:100, maxTimer:100};
-    game.spawnGrace = 45;
-    game.beni.active = true; game.beni.state = "running"; game.beni.target = null; game.beni.timer = 0; game.beni.shieldUsed = false;
-    sfx("thunder"); triggerShake(4, 10);
-  }
-
   function updateGame() {
-    if (game.infinitePower) player.power = 100;
     playerInput();
     if (game.spawnGrace > 0) game.spawnGrace--;
     if (game.bossIntro > 0) game.bossIntro--;
@@ -617,140 +567,28 @@
         }
       }
 
-      if (["mouse","orangecat","purplecat","goldcat"].includes(e.type) && e.active) {
-        const adx = (player.x+player.w/2)-(e.x+e.w/2);
-        const ady = (player.y+player.h/2)-(e.y+e.h/2);
-        const adir = adx < 0 ? -1 : 1;
-        const baseSpeeds = {mouse:2.2,orangecat:2.6,purplecat:3.0,goldcat:3.2};
-        let aspd = baseSpeeds[e.type];
-        if (e.type === "orangecat" && e.hp < e.maxHp - 20 && e.phase < 2) {
+      if (["mouse","orangecat","purplecat","goldcat","nik","rok"].includes(e.type) && e.active) {
+        const dx = (player.x+player.w/2)-(e.x+e.w/2);
+        const dy = (player.y+player.h/2)-(e.y+e.h/2);
+        const speeds = {mouse:2.4,orangecat:2.8,purplecat:3.0,goldcat:3.2,nik:2.6,rok:3.4};
+        e.vx = Math.abs(dx) < 60 ? -(dx<0?-1:1)*1.5 : (dx<0?-1:1)*speeds[e.type];
+        e.facing = e.vx >= 0 ? 1 : -1;
+        if (e.onGround && dy < -30) e.vy = -12;
+        if (e.phase===1 && e.hp <= e.maxHp*0.5) {
           e.phase = 2;
-          game.popups.push({x:e.x+e.w/2,y:e.y-24,text:"ENRAGED!",life:70,maxLife:70,color:"#ff6600"});
+          const rageLines = {mouse:"Squeak squeak!",orangecat:"I'm angry now!",purplecat:"You'll pay for this!",goldcat:"My shoe will crush you!",nik:"Thunder shall judge you!",rok:"You'll burn for this!"};
+          game.popups.push({x:e.x+e.w/2,y:e.y-24,text:"RAGE!",life:70,maxLife:70,color:"#ff3300"});
+          game.bossDialogue = {text:rageLines[e.type]||"...",timer:100,maxTimer:100}; sfx("die");
         }
-        if (e.type === "orangecat" && e.phase === 2) aspd = 3.5;
-        if (e.type === "mouse") {
-          if (e.dashCd > 0) e.dashCd--; else if (Math.random() < 0.012) { e.vx = (Math.random()<0.5?-1:1)*5; e.dashCd = 40; }
-          if (e.dashCd <= 0) e.vx = Math.abs(adx) < 55 ? -adir*aspd : adir*aspd;
-        } else {
-          e.vx = Math.abs(adx) < 55 ? -adir*aspd : adir*aspd;
-        }
-        e.facing = e.vx > 0 ? 1 : -1;
-        if (e.onGround && ady < -30) e.vy = -12;
-        if (e.shootWindup === 1) {
-          const alen = Math.hypot(adx,ady)||1;
-          const prs = {mouse:{r:6,s:3.5,l:120},orangecat:{r:5,s:5.5,l:140},purplecat:{r:6,s:4.5,l:130},goldcat:{r:9,s:3.0,l:160}};
-          const pr = prs[e.type];
-          if (e.type === "goldcat") {
-            game.enemyProjectiles.push({x:e.x+e.w/2,y:e.y+e.h/2,r:pr.r,vx:adir*pr.s,vy:-6,life:pr.l,trail:[],gravity:0.4});
-          } else {
-            game.enemyProjectiles.push({x:e.x+e.w/2,y:e.y+e.h/2,r:pr.r,vx:(adx/alen)*pr.s,vy:(ady/alen)*pr.s,life:pr.l,trail:[]});
-            if (e.type === "purplecat") {
-              const pa=0.3;
-              game.enemyProjectiles.push({x:e.x+e.w/2,y:e.y+e.h/2,r:pr.r,vx:((adx/alen)*Math.cos(pa)-(ady/alen)*Math.sin(pa))*pr.s*0.85,vy:((adx/alen)*Math.sin(pa)+(ady/alen)*Math.cos(pa))*pr.s*0.85,life:pr.l,trail:[]});
-            }
-          }
-          const cdBase = {mouse:240,orangecat:180,purplecat:140,goldcat:120}[e.type];
+        if (e.shootCd <= 0 && e.shootWindup <= 0) e.shootWindup = e.phase===2 ? 14 : 20;
+        else if (e.shootWindup === 1) {
+          const len = Math.hypot(dx,dy)||1;
+          const spd = e.phase===2 ? 6.5 : 5.0;
+          const cdBase = {mouse:220,orangecat:170,purplecat:140,goldcat:120,nik:180,rok:140}[e.type];
+          game.enemyProjectiles.push({x:e.x+e.w/2,y:e.y+e.h/2,r:9,vx:(dx/len)*spd,vy:(dy/len)*spd,life:130,trail:[]});
+          if (e.phase===2) { const a=0.32; game.enemyProjectiles.push({x:e.x+e.w/2,y:e.y+e.h/2,r:8,vx:((dx/len)*Math.cos(a)-(dy/len)*Math.sin(a))*spd*0.85,vy:((dx/len)*Math.sin(a)+(dy/len)*Math.cos(a))*spd*0.85,life:130,trail:[]}); }
           e.shootCd = e.phase===2 ? Math.floor(cdBase*0.7) : cdBase;
           sfx("hit");
-        }
-        if (e.shootCd <= 0 && e.shootWindup <= 0) e.shootWindup = 18;
-      }
-
-      if (e.type === "nik" && e.active) {
-        if (e.flyTimer > 0) e.flyTimer--;
-        if (e.swordCd > 0) e.swordCd--;
-        const ndx = (player.x+player.w/2)-(e.x+e.w/2);
-        if (e.flying) {
-          if (e.y > 48) e.vy = -3; else { e.vy = 0; }
-          e.vx = 0;
-          if (e.shootCd <= 0 && e.y <= 48) {
-            const tx = player.x+player.w/2;
-            game.enemyProjectiles.push({x:tx,y:e.y+e.h/2,r:8,vx:0,vy:5,life:180,trail:[],thunder:true,waveTimer:0});
-            if (e.phase===2) game.enemyProjectiles.push({x:tx+40,y:e.y+e.h/2,r:8,vx:0,vy:5,life:180,trail:[],thunder:true,waveTimer:0});
-            e.shootCd = 60;
-          }
-          if (e.flyTimer <= 0) { e.flying = false; e.flyTimer = 160; }
-        } else {
-          if (e.flyTimer <= 0) { e.flying = true; e.flyTimer = 60; e.vy = -3; e.shootCd = 30; }
-          const nspd = e.phase===2 ? 2.8*1.3 : 2.8;
-          e.vx = Math.abs(ndx) < 72 ? -(ndx<0?-1:1)*2.0 : (ndx<0?-1:1)*nspd;
-          if (e.onGround && player.y+player.h < e.y+e.h-10) e.vy = -12;
-          if (Math.abs(ndx) < 55 && e.swordCd <= 0) {
-            e.swordCd = 80;
-            const sax = ndx > 0 ? e.x+e.w : e.x-40;
-            game.enemyAttacks.push({x:sax, y:e.y+8, w:40, h:24, t:6}); sfx("sword");
-          }
-          if (e.shootCd <= 0 && e.shootWindup <= 0) e.shootWindup = 20;
-          else if (e.shootWindup === 1) {
-            const pdy = (player.y+player.h/2)-(e.y+e.h/2);
-            const nlen = Math.hypot(ndx,pdy)||1;
-            const nspd2 = 5.5;
-            game.enemyProjectiles.push({x:e.x+e.w/2,y:e.y+e.h/2,r:8,vx:(ndx/nlen)*nspd2,vy:(pdy/nlen)*nspd2,life:140,trail:[],thunder:true,waveTimer:0});
-            if (e.phase===2) { const na=0.3; game.enemyProjectiles.push({x:e.x+e.w/2,y:e.y+e.h/2,r:7,vx:((ndx/nlen)*Math.cos(na)-(pdy/nlen)*Math.sin(na))*nspd2*0.85,vy:((ndx/nlen)*Math.sin(na)+(pdy/nlen)*Math.cos(na))*nspd2*0.85,life:140,trail:[],thunder:true,waveTimer:0}); }
-            e.shootCd = e.phase===2 ? 120 : 200; sfx("thunder");
-          }
-        }
-        e.facing = e.vx >= 0 ? 1 : -1;
-        if (e.phase===1 && e.hp <= e.maxHp*0.5) {
-          e.phase = 2;
-          game.popups.push({x:e.x+e.w/2,y:e.y-24,text:"RAGE!",life:70,maxLife:70,color:"#ff8800"});
-          game.bossDialogue = {text:"Thunder shall judge you!",timer:100,maxTimer:100}; sfx("die");
-        }
-        // Nik electrifies floor
-        if (game.level===4) {
-          game.elecTimer--;
-          if (game.elecTimer <= 0) {
-            game.elecTimer = 180;
-            const floorTiles = game.tiles.filter(t=>!game.tiles.some(t2=>t2.x===t.x&&t2.y===t.y-TILE));
-            if (floorTiles.length > 0) {
-              const ft = floorTiles[Math.floor(Math.random()*floorTiles.length)];
-              game.elecTiles.push({x:ft.x, y:ft.y, life:60});
-              if (Math.random()<0.5 && floorTiles.length > 1) {
-                const ft2 = floorTiles[Math.floor(Math.random()*floorTiles.length)];
-                game.elecTiles.push({x:ft2.x, y:ft2.y, life:60});
-              }
-            }
-          }
-        }
-      }
-
-      if (e.type === "rok" && e.active) {
-        if (e.chargeTimer > 0) e.chargeTimer--;
-        if (e.swordCd > 0) e.swordCd--;
-        const rdx = (player.x+player.w/2)-(e.x+e.w/2);
-        const rspd = e.phase===2 ? 4.2*1.3 : 4.2;
-        if (e.chargeState) {
-          e.chargeDur--;
-          e.vx = e.chargeDir * rspd * 1.4;
-          if (e.chargeDur <= 0) e.chargeState = null;
-        } else {
-          if (e.chargeTimer <= 0) {
-            e.chargeTimer = e.phase===2 ? 60 : 100;
-            e.chargeState = "charging"; e.chargeDir = rdx < 0 ? -1 : 1; e.chargeDur = 30;
-          } else {
-            e.vx = Math.abs(rdx) < 72 ? -(rdx<0?-1:1)*2.0 : (rdx<0?-1:1)*rspd;
-          }
-        }
-        if (e.onGround && player.y+player.h < e.y+e.h-10) e.vy = -12;
-        if (Math.abs(rdx) < 55 && e.swordCd <= 0) {
-          e.swordCd = 80;
-          const rax = rdx > 0 ? e.x+e.w : e.x-40;
-          game.enemyAttacks.push({x:rax, y:e.y+8, w:40, h:24, t:6}); sfx("sword");
-        }
-        if (e.shootCd <= 0 && e.shootWindup <= 0) e.shootWindup = 16;
-        else if (e.shootWindup === 1) {
-          const rdy = (player.y+player.h/2)-(e.y+e.h/2);
-          const rlen = Math.hypot(rdx,rdy)||1;
-          const rspd2 = 8.5;
-          game.enemyProjectiles.push({x:e.x+e.w/2,y:e.y+e.h/2,r:9,vx:(rdx/rlen)*rspd2,vy:(rdy/rlen)*rspd2,life:120,trail:[],fireBolt:true});
-          if (e.phase===2) { const ra=0.3; game.enemyProjectiles.push({x:e.x+e.w/2,y:e.y+e.h/2,r:8,vx:((rdx/rlen)*Math.cos(ra)-(rdy/rlen)*Math.sin(ra))*rspd2*0.85,vy:((rdx/rlen)*Math.sin(ra)+(rdy/rlen)*Math.cos(ra))*rspd2*0.85,life:120,trail:[],fireBolt:true}); }
-          e.shootCd = e.phase===2 ? 90 : 150; sfx("hit");
-        }
-        e.facing = e.vx >= 0 ? 1 : -1;
-        if (e.phase===1 && e.hp <= e.maxHp*0.5) {
-          e.phase = 2;
-          game.popups.push({x:e.x+e.w/2,y:e.y-24,text:"RAGE!",life:70,maxLife:70,color:"#ff4400"});
-          game.bossDialogue = {text:"You'll burn for this!",timer:100,maxTimer:100}; sfx("die");
         }
       }
 
@@ -790,15 +628,8 @@
         game.popups.push({x:e.x+e.w/2,y:e.y-10,text:"+"+(baseScore*mult),life:45,maxLife:45,color:eBoss?"#ffd700":"#ffffff"});
         if (game.combo>=2) { const cl=["","","#ffdd00","#ff8800","#ff4400","#ff0088"]; const tx=["","","DOUBLE!","TRIPLE!","QUAD!","RAMPAGE!"]; game.popups.push({x:e.x+e.w/2,y:e.y-30,text:tx[Math.min(game.combo,5)]||"RAMPAGE!",life:70,maxLife:70,color:cl[Math.min(game.combo,5)]||"#ff0088"}); }
         if (!eBoss&&Math.random()<0.5) game.pickups.push({x:e.x+e.w/2-8,y:e.y+e.h-16,w:16,h:16,vy:0,life:300});
-        else if (eBoss&&game.level!==7) { if (player.hp<3) game.pickups.push({x:e.x+e.w/2-8,y:e.y+e.h-16,w:16,h:16,vy:0,life:300}); }
+        else if (eBoss) { if (player.hp<3) game.pickups.push({x:e.x+e.w/2-8,y:e.y+e.h-16,w:16,h:16,vy:0,life:300}); }
         game.hitStop = Math.max(game.hitStop, eBoss?8:4);
-        if (game.level === 7 && eBoss) {
-          game.pickups.push({x:e.x+e.w/2-12,y:e.y-10,w:24,h:24,vy:-4,life:600,fullHeal:true});
-          if (game.gauntletIndex + 1 < GAUNTLET_BOSSES.length) {
-            game.gauntletIndex++;
-            game.gauntletNext = 90;
-          }
-        }
       }
       const isBossType = ["boss","mouse","orangecat","purplecat","goldcat","nik","rok"].includes(e.type);
       if (rects(player,e) && player.hurtCd<=0 && e.alive && !e.dying && game.spawnGrace<=0 && game.bossIntro<=0 && !(player.vy<0 && player.y+player.h<=e.y+20)) {
@@ -811,36 +642,14 @@
       }
     }
 
-    if (game.level === 7 && game.gauntletNext > 0) {
-      game.gauntletNext--;
-      if (game.gauntletNext === 0) _spawnGauntletBoss(game.gauntletIndex);
-    }
-
-    for (const a of game.enemyAttacks) a.t--;
-    game.enemyAttacks = game.enemyAttacks.filter(a => a.t > 0);
-    if (rects(player, {x:0,y:0,w:0,h:0}) === false) {} // no-op
-    for (const a of game.enemyAttacks) {
-      if (player.hurtCd <= 0 && game.spawnGrace <= 0 && player.x < a.x+a.w && player.x+player.w > a.x && player.y < a.y+a.h && player.y+player.h > a.y) {
-        player.hp--; player.hurtCd = 50; player.vx = -player.facing*5; player.vy = -6; sfx("hurt");
-        spawnParticles(player.x+player.w/2, player.y+player.h/2, 8, ["#ff8800","#ffcc44","#ffffff"], {speed:5,life:20,upBias:1});
-        triggerShake(4,8);
-        if (player.hp<=0) _loseLife();
-      }
-    }
-
     game.enemyProjectiles = game.enemyProjectiles.filter(p => {
       if (!p.trail) p.trail=[];
       p.trail.unshift({x:p.x,y:p.y}); if (p.trail.length>8) p.trail.pop();
-      if (p.thunder && p.waveTimer !== undefined) { p.waveTimer++; p.vx += Math.sin(p.waveTimer*0.35)*0.6; }
-      if (p.gravity) p.vy = Math.min(14, p.vy + p.gravity);
       p.x+=p.vx; p.y+=p.vy; p.life--;
       if (p.x<0||p.x>W||p.y<0||p.y>H||p.life<=0) return false;
       if (!p.shockwave) {
         for (const t of game.tiles) {
-          if (p.x+p.r>t.x&&p.x-p.r<t.x+t.w&&p.y+p.r>t.y&&p.y-p.r<t.y+t.h) {
-            if (p.fireBolt) game.firePatches.push({x:p.x-16,y:t.y-8,w:32,h:8,life:180});
-            return false;
-          }
+          if (p.x+p.r>t.x&&p.x-p.r<t.x+t.w&&p.y+p.r>t.y&&p.y-p.r<t.y+t.h) return false;
         }
       }
       const hitPlayer = game.spawnGrace <= 0 && (p.shockwave
@@ -848,7 +657,7 @@
         : (p.x+p.r>player.x&&p.x-p.r<player.x+player.w&&p.y+p.r>player.y&&p.y-p.r<player.y+player.h&&player.hurtCd<=0));
       if (hitPlayer) {
         const b = game.beni;
-        if (game.level === 7 && b.active && !b.shieldUsed) {
+        if (b.active && !b.shieldUsed) {
           b.shieldUsed = true;
           spawnParticles(player.x+player.w/2, player.y+player.h/2, 15, ["#ffffff","#ffee44","#88aaff"], {speed:7,life:28,upBias:3});
           game.popups.push({x:player.x+player.w/2,y:player.y-24,text:"BENI BLOCKS!",life:70,maxLife:70,color:"#ffcc44"});
@@ -891,15 +700,8 @@
             game.popups.push({x:e.x+e.w/2,y:e.y-10,text:"+"+(base2*mult2),life:45,maxLife:45,color:isBoss2?"#ffd700":"#ffffff"});
             if (game.combo>=2) { const cl=["","","#ffdd00","#ff8800","#ff4400","#ff0088"]; const tx=["","","DOUBLE!","TRIPLE!","QUAD!","RAMPAGE!"]; game.popups.push({x:e.x+e.w/2,y:e.y-30,text:tx[Math.min(game.combo,5)]||"RAMPAGE!",life:70,maxLife:70,color:cl[Math.min(game.combo,5)]||"#ff0088"}); }
             if (!isBoss2&&Math.random()<0.5) game.pickups.push({x:e.x+e.w/2-8,y:e.y+e.h-16,w:16,h:16,vy:0,life:300});
-            else if (isBoss2&&game.level!==7) { if (player.hp<3) game.pickups.push({x:e.x+e.w/2-8,y:e.y+e.h-16,w:16,h:16,vy:0,life:300}); }
+            else if (isBoss2) { if (player.hp<3) game.pickups.push({x:e.x+e.w/2-8,y:e.y+e.h-16,w:16,h:16,vy:0,life:300}); }
             game.hitStop=Math.max(game.hitStop,isBoss2?8:4);
-            if (game.level === 7 && isBoss2) {
-              game.pickups.push({x:e.x+e.w/2-12,y:e.y-10,w:24,h:24,vy:-4,life:600,fullHeal:true});
-              if (game.gauntletIndex + 1 < GAUNTLET_BOSSES.length) {
-                game.gauntletIndex++;
-                game.gauntletNext = 90;
-              }
-            }
           } else if (e.hp>0) sfx("hit");
         }
       }
@@ -937,8 +739,7 @@
           b.x += b.facing * 5;
           if (Math.abs(b.target.x - b.x) < 22) { b.state = "biting"; b.timer = 20; }
         } else {
-          if (game.level === 7) { b.state = "cooldown"; b.timer = 180; }
-          else { b.state = "leaving"; }
+          b.state = "leaving";
         }
       } else if (b.state === "biting") {
         if (--b.timer <= 0) {
@@ -947,8 +748,7 @@
             if (b.target.type !== "boss") b.target.stunTimer = 60;
             spawnParticles(b.x, b.y, 8, ["#ffcc44","#ff8844","#ffffff"], {speed:4,life:18,upBias:1}); sfx("hit");
           }
-          if (game.level === 7) { b.state = "cooldown"; b.timer = 180; }
-          else { b.state = "leaving"; }
+          b.state = "leaving";
         }
       } else if (b.state === "cooldown") {
         const targetX = player.x - 50;
@@ -959,27 +759,6 @@
         b.x += 7; if (b.x > W+30) b.active = false;
       }
     }
-
-    // Fire patches (Rok arena)
-    if (player.fireCd > 0) player.fireCd--;
-    game.firePatches = game.firePatches.filter(fp => {
-      fp.life--;
-      if (player.fireCd <= 0 && player.x+player.w > fp.x && player.x < fp.x+fp.w && player.y+player.h > fp.y && player.y+player.h <= fp.y+fp.h+16) {
-        player.hp--; player.fireCd = 30; sfx("hurt"); player.hurtCd = 20;
-        if (player.hp<=0) _loseLife();
-      }
-      return fp.life > 0;
-    });
-
-    // Electrified tiles (Nik arena)
-    game.elecTiles = game.elecTiles.filter(et => {
-      et.life--;
-      if (et.life > 0 && player.hurtCd <= 0 && player.x+player.w > et.x && player.x < et.x+TILE && player.y+player.h >= et.y && player.y+player.h <= et.y+TILE) {
-        player.hp--; player.hurtCd = 40; sfx("hurt"); triggerShake(2,4);
-        if (player.hp<=0) _loseLife();
-      }
-      return et.life > 0;
-    });
 
     if (game.comboTimer>0) { game.comboTimer--; if (game.comboTimer===0) game.combo=0; }
     if (game.bossDialogue.timer>0) game.bossDialogue.timer--;
@@ -1740,23 +1519,6 @@
 
     for (const a of game.attacks) { ctx.fillStyle="rgba(255,255,255,0.6)";ctx.fillRect(a.x,a.y,a.w,a.h); }
 
-    // Draw fire patches
-    for (const fp of game.firePatches) {
-      const fa = fp.life/180;
-      ctx.globalAlpha = Math.min(1, fa*2);
-      ctx.fillStyle = `rgba(255,${Math.floor(80+Math.random()*80)},0,0.8)`;
-      ctx.fillRect(fp.x, fp.y, fp.w, fp.h);
-      ctx.fillStyle = `rgba(255,200,50,0.5)`;
-      ctx.fillRect(fp.x+4, fp.y, fp.w-8, 3);
-    }
-    ctx.globalAlpha = 1;
-    // Draw elec tiles
-    for (const et of game.elecTiles) {
-      const ep = et.life/60;
-      ctx.fillStyle = `rgba(200,255,100,${(0.5+Math.sin(game.tick*0.5)*0.3)*ep})`;
-      ctx.fillRect(et.x, et.y, TILE, TILE);
-    }
-
     function _drawEnemy(e) {
       if (e.type==="boss") drawBoss(e);
       else if (e.type==="nik") drawNik(e);
@@ -1783,9 +1545,6 @@
       _drawEnemy(e);
     }
 
-    // Draw enemy attack hitboxes
-    for (const a of game.enemyAttacks) { ctx.fillStyle="rgba(255,150,50,0.4)"; ctx.fillRect(a.x,a.y,a.w,a.h); }
-
     drawBeni();
 
     for (const p of game.projectiles) {
@@ -1798,22 +1557,15 @@
 
     for (const p of game.enemyProjectiles) {
       if (p.shockwave) continue;
-      const tc = p.thunder?"#88eeff":p.fireBolt?"#ff6600":"#c935ff";
-      if (p.trail) for (let i=0;i<p.trail.length;i++) { ctx.globalAlpha=(1-i/p.trail.length)*0.45;ctx.fillStyle=tc;ctx.beginPath();ctx.arc(p.trail[i].x,p.trail[i].y,Math.max(1,p.r*(1-i/p.trail.length)*0.7),0,Math.PI*2);ctx.fill(); }
+      if (p.trail) for (let i=0;i<p.trail.length;i++) { ctx.globalAlpha=(1-i/p.trail.length)*0.45;ctx.fillStyle="#c935ff";ctx.beginPath();ctx.arc(p.trail[i].x,p.trail[i].y,Math.max(1,p.r*(1-i/p.trail.length)*0.7),0,Math.PI*2);ctx.fill(); }
     }
     ctx.globalAlpha=1;
-    for (const p of game.enemyProjectiles) { if (p.shockwave) continue; const gc=p.thunder?"#aaffff":p.fireBolt?"#ffaa44":"#ee77ff"; ctx.globalAlpha=0.15;ctx.fillStyle=gc;ctx.beginPath();ctx.arc(p.x,p.y,p.r*2.5,0,Math.PI*2);ctx.fill(); ctx.globalAlpha=0.3;ctx.beginPath();ctx.arc(p.x,p.y,p.r*1.8,0,Math.PI*2);ctx.fill(); }
+    for (const p of game.enemyProjectiles) { if (p.shockwave) continue; ctx.globalAlpha=0.15;ctx.fillStyle="#ee77ff";ctx.beginPath();ctx.arc(p.x,p.y,p.r*2.5,0,Math.PI*2);ctx.fill(); ctx.globalAlpha=0.3;ctx.beginPath();ctx.arc(p.x,p.y,p.r*1.8,0,Math.PI*2);ctx.fill(); }
     ctx.globalAlpha=1;
     for (const p of game.enemyProjectiles) {
       if (p.shockwave) continue;
-      const pc=p.thunder?"#44ddff":p.fireBolt?"#ff4400":"#c935ff";
-      const sc=p.thunder?"#ccffff":p.fireBolt?"#ffcc44":"#f7b7ff";
-      ctx.fillStyle=pc;ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fill();
-      if (p.thunder) {
-        ctx.strokeStyle=sc;ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(p.x-4,p.y-4);ctx.lineTo(p.x+2,p.y);ctx.lineTo(p.x-2,p.y+4);ctx.stroke();
-      } else {
-        ctx.strokeStyle=sc;ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(p.x,p.y,p.r+7,p.r-8,-0.2,0,Math.PI*2);ctx.stroke();
-      }
+      ctx.fillStyle="#c935ff";ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fill();
+      ctx.strokeStyle="#f7b7ff";ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(p.x,p.y,p.r+7,p.r-8,-0.2,0,Math.PI*2);ctx.stroke();
     }
     for (const p of game.enemyProjectiles) {
       if (!p.shockwave) continue;
@@ -2145,13 +1897,6 @@
     if (["ArrowUp","ArrowDown","ArrowLeft","ArrowRight"," "].includes(e.key)) e.preventDefault();
     if (audio.state === "suspended") audio.resume();
 
-    if (e.key.toLowerCase() === "l") {
-      _doStartGame(7);
-      game.state = "playing"; startMusic();
-      if (phaserGame && !phaserGame.scene.isActive("Game")) {
-        phaserGame.scene.stop("Menu"); phaserGame.scene.start("Game");
-      }
-    }
     if (e.key.toLowerCase() === "p") {
       if (game.state === "playing")  { game.state = "paused"; stopMusic(); }
       else if (game.state === "paused") { game.state = "playing"; startMusic(); }
