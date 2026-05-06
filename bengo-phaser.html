@@ -213,11 +213,12 @@
     ["####################","#..................#","#.........###.E....#","#.....###..........#","#..P...........E...#","#......E....###....#","#..................#","#....###....E......#","#..........###.BF..#","####################"],
     ["####################","####################","#...E.....E........#","#.####.......####..#","#.P................#","#.......####.......#","#..E..E............#","#.####.......####..#","#B.E.......E.....F.#","####################"],
     ["####################","#..................#","#....####..........#","#..................#","#....####..........#","#.P..............N.#","#.......####.......#","#.E.....E..........#","#..................#","#....###...###....F#","####################"],
-    ["####################","#..................#","#.E..........E.....#","#..####......####..#","#..................#","#.P................#","#.......####.......#","#..................#","#.E..............R.#","#....###...###....F#","####################"],
-    ["####################","#.....E......E.....#","#...####....####...#","#..................#","#.##..........##...#","#.....E.......E....#","#......###.........#","#..................#","#.P..............B.#","#....###...###....F#","####################"]
+    ["####################","#..................#","#.E.....###........#","#..................#","#.######...........#","#.....P............#","#..........#######.#","#.E................#","#.E..............R.#","#............###..F#","####################"],
+    ["####################","#.....E......E.....#","#...####....####...#","#..................#","#.##..........##...#","#.....E.......E....#","#......###.........#","#..................#","#.P..............B.#","#....###...###....F#","####################"],
+    ["####################","#..................#","#.M....O...U....G..#","#.........#####....#","#..................#","#.P................#","#.#####............#","#..................#","#.N..............R.#","#.................F#","####################"]
   ];
-  const REQUIRED_KILLS = [7, 7, 5, 7, 3, 4, 5];
-  const LEVEL_NAMES = ["THE HUNT", "THE PURSUIT", "THE SIEGE", "THE TUNNEL", "NIK'S LAIR", "ROK'S LAIR", "FACE KLANAC"];
+  const REQUIRED_KILLS = [7, 7, 5, 7, 3, 4, 5, 7];
+  const LEVEL_NAMES = ["THE HUNT", "THE PURSUIT", "THE SIEGE", "THE TUNNEL", "NIK'S LAIR", "ROK'S LAIR", "FACE KLANAC", "THE GAUNTLET"];
 
   // ── Gauntlet boss definitions ────────────────────────────────────────────────
 
@@ -291,8 +292,12 @@
           const extra = isKlanac ? {powerUsed:false,powerCd:0,slamCd:220,slamState:null,crushCd:300,crushState:null,crushTimer:0,crushTargetX:0} : {phase:1};
           game.enemies.push({ x:x+8, y:y+6, w:player.w, h:player.h, vx:-0.8, vy:0, hp:bd.hp, maxHp:bd.maxHp, onGround:false, alive:true, type:bd.type, hurtCd:0, active:false, shootCd:bd.shootCd, shootWindup:0, phase:1, stunTimer:0, ...extra });
         }
-        if (ch === "N") game.enemies.push({ x:x+8, y:y+6, w:player.w, h:player.h, vx:-1.2, vy:0, hp:60, maxHp:60, onGround:false, alive:true, type:"nik", hurtCd:0, active:false, shootCd:200, shootWindup:0, phase:1, stunTimer:0 });
-        if (ch === "R") game.enemies.push({ x:x+8, y:y+6, w:player.w, h:player.h, vx:-1.2, vy:0, hp:60, maxHp:60, onGround:false, alive:true, type:"rok", hurtCd:0, active:false, shootCd:150, shootWindup:0, phase:1, stunTimer:0 });
+        if (ch === "N") game.enemies.push({ x:x+8, y:y+6, w:player.w, h:player.h, vx:-1.2, vy:0, hp:60, maxHp:60, onGround:false, alive:true, type:"nik", hurtCd:0, active:index===7, shootCd:200, shootWindup:0, phase:1, stunTimer:0 });
+        if (ch === "R") game.enemies.push({ x:x+8, y:y+6, w:player.w, h:player.h, vx:-1.2, vy:0, hp:60, maxHp:60, onGround:false, alive:true, type:"rok", hurtCd:0, active:index===7, shootCd:150, shootWindup:0, phase:1, stunTimer:0 });
+        if (ch === "M") game.enemies.push({ x:x+8, y:y+6, w:player.w, h:player.h, vx:-0.8, vy:0, hp:30, maxHp:30, onGround:false, alive:true, type:"mouse", hurtCd:0, active:true, shootCd:240, shootWindup:0, phase:1, stunTimer:0 });
+        if (ch === "O") game.enemies.push({ x:x+8, y:y+6, w:player.w, h:player.h, vx:-0.8, vy:0, hp:42, maxHp:42, onGround:false, alive:true, type:"orangecat", hurtCd:0, active:true, shootCd:180, shootWindup:0, phase:1, stunTimer:0 });
+        if (ch === "U") game.enemies.push({ x:x+8, y:y+6, w:player.w, h:player.h, vx:-0.8, vy:0, hp:54, maxHp:54, onGround:false, alive:true, type:"purplecat", hurtCd:0, active:true, shootCd:140, shootWindup:0, phase:1, stunTimer:0 });
+        if (ch === "G") game.enemies.push({ x:x+8, y:y+6, w:player.w, h:player.h, vx:-0.8, vy:0, hp:65, maxHp:65, onGround:false, alive:true, type:"goldcat", hurtCd:0, active:true, shootCd:120, shootWindup:0, phase:1, stunTimer:0 });
         if (ch === "F") game.goal = { x:x+10, y:y+4, w:26, h:44 };
       }
     }
@@ -300,6 +305,11 @@
     if (index === 6) {
       game.bossIntro = 120;
       game.bossDialogue = { text: "You dare challenge me, boy?", timer: 130, maxTimer: 130 };
+    } else if (index === 7) {
+      game.bossIntro = 120;
+      game.bossDialogue = { text: "The Gauntlet begins!", timer: 130, maxTimer: 130 };
+      game.klanacSpawned = false;
+      game.beni = { active: true, x: player.x - 50, y: player.y + 5, vx: 0, vy: 0, state: "running", target: null, timer: 0, facing: 1, shieldUsed: false, companion: true };
     } else {
       game.bossIntro = 0;
     }
@@ -445,6 +455,17 @@
           const lines = {boss:"You dare challenge me, boy?",mouse:"Squeak!",orangecat:"You'll regret this!",purplecat:"Heh, foolish...",goldcat:"My shoe will crush you!",nik:"Thunder calls your name!",rok:"Burn!!"};
           game.bossDialogue = { text: lines[e.type]||"...", timer: 100, maxTimer: 100 };
         }
+      }
+    }
+
+    // Level 8: spawn Klanac when only 1 boss remains
+    if (game.level === 7 && !game.klanacSpawned) {
+      const bossesAlive = game.enemies.filter(e => e.alive && !e.dying && e.type !== "grunt").length;
+      if (bossesAlive === 1) {
+        game.klanacSpawned = true;
+        game.enemies.push({ x:W/2-player.w/2, y:TILE, w:player.w, h:player.h, vx:-0.8, vy:0, hp:80, maxHp:80, onGround:false, alive:true, type:"boss", hurtCd:0, active:true, shootCd:160, shootWindup:0, phase:1, stunTimer:0, powerUsed:false, powerCd:0, slamCd:220, slamState:null, crushCd:300, crushState:null, crushTimer:0, crushTargetX:0 });
+        game.bossDialogue = { text: "You dare challenge me, boy?", timer: 130, maxTimer: 130 };
+        triggerShake(8, 20);
       }
     }
 
@@ -726,7 +747,7 @@
       const b = game.beni;
       if (b.state === "running") {
         if (!b.target || !b.target.alive || b.target.dying) {
-          let nearest = null, nearDist = Infinity;
+          let nearest = null, nearDist = b.companion ? 80 : Infinity;
           for (const e of game.enemies) {
             if (!e.alive || e.dying) continue;
             const d = Math.abs(e.x - b.x);
@@ -737,7 +758,13 @@
         if (b.target) {
           b.facing = b.target.x > b.x ? 1 : -1;
           b.x += b.facing * 5;
+          if (b.companion) b.y += (b.target.y + 5 - b.y) * 0.15;
           if (Math.abs(b.target.x - b.x) < 22) { b.state = "biting"; b.timer = 20; }
+        } else if (b.companion) {
+          const tx = player.x - player.facing * 50;
+          b.x += (tx - b.x) * 0.12;
+          b.y += (player.y + 5 - b.y) * 0.15;
+          b.facing = player.x > b.x ? 1 : -1;
         } else {
           b.state = "leaving";
         }
@@ -748,11 +775,13 @@
             if (b.target.type !== "boss") b.target.stunTimer = 60;
             spawnParticles(b.x, b.y, 8, ["#ffcc44","#ff8844","#ffffff"], {speed:4,life:18,upBias:1}); sfx("hit");
           }
-          b.state = "leaving";
+          b.state = b.companion ? "cooldown" : "leaving";
+          if (b.companion) b.timer = 180;
         }
       } else if (b.state === "cooldown") {
         const targetX = player.x - 50;
         b.x += (targetX - b.x) * 0.05;
+        if (b.companion) b.y += (player.y + 5 - b.y) * 0.1;
         b.facing = player.x > b.x ? 1 : -1;
         if (--b.timer <= 0) { b.state = "running"; b.target = null; }
       } else {
