@@ -1933,6 +1933,10 @@
     if (game.state === "paused") {
       if (e.key === "ArrowLeft")  { game.volume=Math.max(0,+(game.volume-0.1).toFixed(1)); masterGain.gain.value=game.volume; }
       if (e.key === "ArrowRight") { game.volume=Math.min(1,+(game.volume+0.1).toFixed(1)); masterGain.gain.value=game.volume; }
+      if (e.key.toLowerCase() === "n") {
+        const next = game.level + 1;
+        if (next < LEVELS.length) { game.level = next; loadLevel(next); game.state = "playing"; startMusic(); }
+      }
     }
     if (e.key === "Enter") {
       if (game.state === "menu") {
